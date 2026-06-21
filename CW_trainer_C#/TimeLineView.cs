@@ -76,28 +76,17 @@ namespace CwTrainer.Display
         private static readonly Color SpaceGapColor = Color.FromArgb(40, 40, 46);
         private static readonly Color LiveRowOutline = Color.FromArgb(120, 160, 220);
 
-        private int _scrollOffsetY = 0;
-
         public TimelineView()
         {
             DoubleBuffered = true;
             BackColor = BackgroundColor;
 
-            // NOTE: AutoScroll is deliberately NOT used. WinForms'
-            // ScrollableControl machinery (AutoScroll/AutoScrollPosition)
-            // implements scrolling via a pixel-blit (ScrollWindowEx) that
-            // shifts the existing double-buffered bitmap and only
-            // invalidates the newly-exposed strip, rather than fully
-            // repainting. This caused grid lines on already-scrolled rows
-            // to permanently lose their top/bottom pixels - confirmed by
-            // testing that even a fully-visible row (no scrolling required
-            // to see it) lost its lines the moment ANY scroll occurred.
-            // Calling Invalidate(ClientRectangle) afterward did not help,
-            // since the stale bitmap blit had already happened by that
-            // point. Managing scroll purely as a paint-time Y-offset that
-            // WE control (_scrollOffsetY below) avoids WinForms' blit
-            // optimization entirely - every OnPaint call draws every row
-            // from scratch at its correct offset position, full stop.
+            // NOTE: no AutoScroll, no manual scroll-offset tracking either.
+            // The live row is pinned to a fixed Y position (see OnPaint);
+            // completed rows are positioned by counting backward from it,
+            // so there's nothing to "scroll" in the traditional sense -
+            // older rows simply stop being drawn once they'd fall above
+            // the visible area (y > -RowHeight check in OnPaint).
             SetStyle(ControlStyles.ResizeRedraw, true);
 
             _rowBuilder.RowCompleted += (s, row) =>
@@ -105,13 +94,13 @@ namespace CwTrainer.Display
                 _completedRows.Add(row);
                 if (_completedRows.Count > MaxRetainedRows)
                     _completedRows.RemoveAt(0);
-                UpdateScrollExtentAndInvalidate();
+                Invalidate(ClientRectangle);
             };
 
             _rowBuilder.LiveRowChanged += (s, row) =>
             {
                 _liveRow = row;
-                UpdateScrollExtentAndInvalidate();
+                Invalidate(ClientRectangle);
             };
         }
 
@@ -123,23 +112,6 @@ namespace CwTrainer.Display
         {
             _completedRows.Clear();
             _rowBuilder.Reset();
-            UpdateScrollExtentAndInvalidate();
-        }
-
-        private void UpdateScrollExtentAndInvalidate()
-        {
-            int totalRows = _completedRows.Count + 1; // +1 for live row
-            int contentHeight = TopMargin + totalRows * (RowHeight + RowSpacing);
-
-            // Self-managed "auto-scroll to bottom" - compute the offset
-            // that places the newest/live row at the bottom of the visible
-            // client area, clamped so we never scroll past the top of the
-            // content when everything already fits.
-            _scrollOffsetY = Math.Max(0, contentHeight - ClientSize.Height);
-
-            // Full, unconditional repaint - every row is redrawn from
-            // scratch at its correct position every time. No partial
-            // invalidation, no reliance on any blit/shift optimization.
             Invalidate(ClientRectangle);
         }
 
@@ -148,19 +120,27 @@ namespace CwTrainer.Display
             base.OnPaint(e);
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TranslateTransform(0, -_scrollOffsetY);
 
-            int y = TopMargin;
+            // Live row is pinned to a fixed Y position near the bottom of
+            // the visible client area - it never moves, regardless of how
+            // many rows have accumulated. This makes it much easier to
+            // keep your eye on "what's happening right now" without
+            // hunting for a moving target each time a row completes.
+            int liveRowY = ClientSize.Height - RowHeight - TopMargin;
 
-            foreach (var row in _completedRows)
+            DrawRow(g, _liveRow, liveRowY, isLive: true);
+
+            // Completed rows are drawn working UPWARD from the live row,
+            // most recent immediately above it, older ones further up and
+            // eventually off the top of the visible area entirely (simply
+            // not drawn - no scrolling transform needed at all now, since
+            // position is computed directly from "rows back from live").
+            int y = liveRowY - RowSpacing - RowHeight;
+            for (int i = _completedRows.Count - 1; i >= 0 && y > -RowHeight; i--)
             {
-                DrawRow(g, row, y, isLive: false);
-                y += RowHeight + RowSpacing;
+                DrawRow(g, _completedRows[i], y, isLive: false);
+                y -= RowHeight + RowSpacing;
             }
-
-            // Always draw the live row last, even if empty - gives a
-            // consistent "current line" position for the operator to watch.
-            DrawRow(g, _liveRow, y, isLive: true);
         }
 
         private void DrawRow(Graphics g, TimelineRow row, int y, bool isLive)
@@ -172,7 +152,7 @@ namespace CwTrainer.Display
             // drawing - use the larger of (actual content) or a sensible
             // minimum so short/empty live rows still show a starter grid.
             double rowDurationMs = row.TotalDurationMs;
-            float rowWidthPx = Math.Max((float)(rowDurationMs * PixelsPerMs), ditPx * 15);
+            float rowWidthPx = Math.Max((float)(rowDurationMs * PixelsPerMs), ditPx * 12);
 
             var rowRect = new RectangleF(LeftMargin, y, rowWidthPx, RowHeight);
 
@@ -280,7 +260,7 @@ namespace CwTrainer.Display
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
-            UpdateScrollExtentAndInvalidate();
+            Invalidate(ClientRectangle);
         }
     }
 }
