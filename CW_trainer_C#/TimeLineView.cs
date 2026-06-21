@@ -40,7 +40,7 @@ namespace CwTrainer.Display
         [DefaultValue(1.2f)]
         public float PixelsPerMs { get; set; } = 1.2f;
 
-        private double _ditLengthMs = 1200.0 / 22.0; // default 22 WPM
+        private double _ditLengthMs = 1200.0 / 20.0; // default 20 WPM
 
         [Category("Trainer")]
         public double DitLengthMs
@@ -68,19 +68,37 @@ namespace CwTrainer.Display
         private const int TopMargin = 8;
 
         private static readonly Color BackgroundColor = Color.FromArgb(24, 24, 28);
-        private static readonly Color GridLineColor = Color.FromArgb(100, 100, 100);
-        private static readonly Color GridLineColorCharBoundary = Color.FromArgb(90, 90, 100);
+        private static readonly Color GridLineColor = Color.FromArgb(120, 120, 132);
+        private static readonly Color GridLineColorCharBoundary = Color.FromArgb(190, 190, 210);
         private static readonly Color GoodColor = Color.FromArgb(80, 200, 120);
         private static readonly Color WarnColor = Color.FromArgb(230, 180, 60);
         private static readonly Color BadColor = Color.FromArgb(220, 80, 70);
         private static readonly Color SpaceGapColor = Color.FromArgb(40, 40, 46);
         private static readonly Color LiveRowOutline = Color.FromArgb(120, 160, 220);
 
+        private int _scrollOffsetY = 0;
+
         public TimelineView()
         {
             DoubleBuffered = true;
             BackColor = BackgroundColor;
-            AutoScroll = true;
+
+            // NOTE: AutoScroll is deliberately NOT used. WinForms'
+            // ScrollableControl machinery (AutoScroll/AutoScrollPosition)
+            // implements scrolling via a pixel-blit (ScrollWindowEx) that
+            // shifts the existing double-buffered bitmap and only
+            // invalidates the newly-exposed strip, rather than fully
+            // repainting. This caused grid lines on already-scrolled rows
+            // to permanently lose their top/bottom pixels - confirmed by
+            // testing that even a fully-visible row (no scrolling required
+            // to see it) lost its lines the moment ANY scroll occurred.
+            // Calling Invalidate(ClientRectangle) afterward did not help,
+            // since the stale bitmap blit had already happened by that
+            // point. Managing scroll purely as a paint-time Y-offset that
+            // WE control (_scrollOffsetY below) avoids WinForms' blit
+            // optimization entirely - every OnPaint call draws every row
+            // from scratch at its correct offset position, full stop.
+            SetStyle(ControlStyles.ResizeRedraw, true);
 
             _rowBuilder.RowCompleted += (s, row) =>
             {
@@ -112,13 +130,17 @@ namespace CwTrainer.Display
         {
             int totalRows = _completedRows.Count + 1; // +1 for live row
             int contentHeight = TopMargin + totalRows * (RowHeight + RowSpacing);
-            AutoScrollMinSize = new Size(0, contentHeight);
 
-            // Auto-scroll to bottom so the newest/live row is always visible,
-            // matching the requested "log scrolls up" behavior.
-            AutoScrollPosition = new Point(0, Math.Max(0, contentHeight - ClientSize.Height));
+            // Self-managed "auto-scroll to bottom" - compute the offset
+            // that places the newest/live row at the bottom of the visible
+            // client area, clamped so we never scroll past the top of the
+            // content when everything already fits.
+            _scrollOffsetY = Math.Max(0, contentHeight - ClientSize.Height);
 
-            Invalidate();
+            // Full, unconditional repaint - every row is redrawn from
+            // scratch at its correct position every time. No partial
+            // invalidation, no reliance on any blit/shift optimization.
+            Invalidate(ClientRectangle);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -126,7 +148,7 @@ namespace CwTrainer.Display
             base.OnPaint(e);
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TranslateTransform(AutoScrollPosition.X, AutoScrollPosition.Y);
+            g.TranslateTransform(0, -_scrollOffsetY);
 
             int y = TopMargin;
 
@@ -157,14 +179,46 @@ namespace CwTrainer.Display
             // Faint ideal grid: ticks every 1 dit, slightly stronger every
             // 3 dits (the classic inter-character space width) so the
             // operator has a built-in ruler.
+            //
+            // IMPORTANT: grid lines are drawn with antialiasing OFF and
+            // coordinates snapped to whole pixels. Thin lines drawn with
+            // antialiasing at fractional sub-pixel X positions render
+            // inconsistently (sometimes crisp, sometimes blurry/split
+            // across two columns) as the grid's absolute position shifts
+            // during scrolling - snapping + no antialiasing makes every
+            // line a single, consistent, sharp pixel column regardless of
+            // scroll offset.
+            var previousSmoothingMode = g.SmoothingMode;
+            g.SmoothingMode = SmoothingMode.None;
+
             int ditIndex = 0;
             for (float gx = LeftMargin; gx <= LeftMargin + rowWidthPx; gx += ditPx, ditIndex++)
             {
                 bool isCharBoundaryTick = ditIndex % 3 == 0;
-                using var gridPen = new Pen(isCharBoundaryTick ? GridLineColorCharBoundary : GridLineColor,
-                    isCharBoundaryTick ? 2.4f : 1.2f);
-                g.DrawLine(gridPen, gx, y, gx, y + RowHeight);
+                int snappedX = (int)Math.Round(gx);
+
+                Color lineColor = isCharBoundaryTick ? GridLineColorCharBoundary : GridLineColor;
+                float lineWidth = isCharBoundaryTick ? 2f : 1f;
+
+                using var gridPen = new Pen(lineColor, lineWidth);
+                // NOTE: no explicit PenAlignment set (left at default Center).
+                // Inset alignment was found to clip the top/bottom-most
+                // pixel of vertical lines when a row's y-range coincided
+                // with the AutoScroll clip boundary during scrolling -
+                // default Center alignment with integer-snapped coordinates
+                // is both simpler and avoids that edge case.
+                //
+                // Lines are also drawn 1px short of the row's exact top/
+                // bottom edge (y+1 to y+RowHeight-1) rather than flush
+                // (y to y+RowHeight) - this keeps both endpoints strictly
+                // inside the row's own bounds rather than exactly on them,
+                // so a line's endpoint never coincides with the clip
+                // rectangle's edge at the moment the view is scrolled to
+                // place that row's top/bottom right at the visible boundary.
+                g.DrawLine(gridPen, snappedX, y + 1, snappedX, y + RowHeight - 1);
             }
+
+            g.SmoothingMode = previousSmoothingMode;
 
             if (isLive)
             {
@@ -173,11 +227,15 @@ namespace CwTrainer.Display
             }
 
             // Draw each element to scale, left to right, chronologically.
+            // Blocks keep antialiasing on (previousSmoothingMode, typically
+            // AntiAlias) since filled rectangles benefit from smooth edges
+            // and aren't subject to the same hairline-jitter problem thin
+            // strokes have.
             float x = LeftMargin;
             foreach (var element in row.Elements)
             {
                 float widthPx = (float)(element.DurationMs * PixelsPerMs);
-                var elementRect = new RectangleF(x, y + 4, Math.Max(widthPx, 1), RowHeight - 8);
+                var elementRect = new RectangleF(x, y + 6, Math.Max(widthPx, 1), RowHeight - 12);
 
                 if (element.IsMark)
                 {
