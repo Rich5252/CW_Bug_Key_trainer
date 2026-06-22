@@ -1,6 +1,6 @@
 using CwTrainer;
 
-namespace CW_trainer_C_
+namespace CW_trainer
 {
     internal static class Program
     {
