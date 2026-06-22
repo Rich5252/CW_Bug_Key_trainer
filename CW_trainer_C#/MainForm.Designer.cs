@@ -153,7 +153,6 @@ namespace CwTrainer
 		private TextBox textBox2;
 		private Label label1;
         private Button calibrateButton;
-        private ToolStripStatusLabel toolStripStatusLabel1;
         private ToolStripStatusLabel CalStatusLabel;
     }
 }

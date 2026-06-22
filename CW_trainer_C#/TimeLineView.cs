@@ -29,7 +29,7 @@ namespace CwTrainer.Display
     /// </summary>
     public sealed class TimelineView : UserControl
     {
-        private ElementHistory _history;
+        private ElementHistory? _history;
         private readonly List<CharacterGroup> _completedRows = new List<CharacterGroup>();
         private CharacterGroup _liveRow = new CharacterGroup();
 
@@ -100,7 +100,7 @@ namespace CwTrainer.Display
         /// later to switch to a different history instance (e.g. loading a
         /// past session) - the previous subscription is cleanly removed.
         /// </summary>
-        public void AttachHistory(ElementHistory history)
+        public void AttachHistory(ElementHistory? history)
         {
             if (_history != null)
             {
@@ -110,16 +110,16 @@ namespace CwTrainer.Display
 
             _history = history;
             _completedRows.Clear();
-            _completedRows.AddRange(history.CompletedCharacters);
-            _liveRow = history.CurrentCharacter;
+            _completedRows.AddRange(history?.CompletedCharacters ?? Enumerable.Empty<CharacterGroup>());
+            _liveRow = history?.CurrentCharacter ?? new CharacterGroup();
 
-            _history.CharacterCompleted += OnCharacterCompleted;
-            _history.LiveCharacterChanged += OnLiveCharacterChanged;
+            _history?.CharacterCompleted += OnCharacterCompleted;
+            _history?.LiveCharacterChanged += OnLiveCharacterChanged;
 
             Invalidate(ClientRectangle);
         }
 
-        private void OnCharacterCompleted(object sender, CharacterGroup row)
+        private void OnCharacterCompleted(object? sender, CharacterGroup row)
         {
             _completedRows.Add(row);
             if (_completedRows.Count > MaxRetainedRows)
@@ -127,7 +127,7 @@ namespace CwTrainer.Display
             Invalidate(ClientRectangle);
         }
 
-        private void OnLiveCharacterChanged(object sender, CharacterGroup row)
+        private void OnLiveCharacterChanged(object? sender, CharacterGroup row)
         {
             _liveRow = row;
 

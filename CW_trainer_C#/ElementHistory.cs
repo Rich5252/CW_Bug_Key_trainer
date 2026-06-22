@@ -81,10 +81,10 @@ namespace CwTrainer.Serial
         public CharacterGroup CurrentCharacter => _currentCharacter;
 
         /// <summary>Raised when a character is closed, by either a real inter-character space or the silence timeout. Check CharacterGroup.ClosedByTimeout if the distinction matters to your consumer.</summary>
-        public event EventHandler<CharacterGroup> CharacterCompleted;
+        public event EventHandler<CharacterGroup>? CharacterCompleted;
 
         /// <summary>Raised whenever the in-progress character changes (new element added, or it was just reset after closing) - subscribe to this to repaint a live/current-row display.</summary>
-        public event EventHandler<CharacterGroup> LiveCharacterChanged;
+        public event EventHandler<CharacterGroup>? LiveCharacterChanged;
 
         public ElementHistory()
         {
@@ -163,7 +163,7 @@ namespace CwTrainer.Serial
         }
 
         /// <summary>The most recently COMPLETED character, or null if none yet.</summary>
-        public CharacterGroup LastCompletedCharacter =>
+        public CharacterGroup? LastCompletedCharacter =>
             _completedCharacters.Count > 0 ? _completedCharacters[_completedCharacters.Count - 1] : null;
 
         public void Reset()

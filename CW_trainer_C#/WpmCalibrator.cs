@@ -59,7 +59,7 @@ namespace CwTrainer.Serial
         {
             // Standard WPM formula (PARIS standard): one dit = 1200/WPM ms.
             double wpm = 1200.0 / ditLengthMs;
-            return new CalibrationResult(true, null, ditLengthMs, wpm, ditsUsed, varianceFraction);
+            return new CalibrationResult(true, "", ditLengthMs, wpm, ditsUsed, varianceFraction);
         }
     }
 

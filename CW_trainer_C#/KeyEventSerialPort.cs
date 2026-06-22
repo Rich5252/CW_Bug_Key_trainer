@@ -51,15 +51,15 @@ namespace CwTrainer.Serial
         private volatile SerialConnectionState _state = SerialConnectionState.Disconnected;
 
         /// <summary>Raised whenever a complete, parsed key event line is received.</summary>
-        public event EventHandler<KeyEvent> KeyEventReceived;
+        public event EventHandler<KeyEvent>? KeyEventReceived;
 
         /// <summary>Raised when connection state changes (Disconnected/Connecting/Connected/Reconnecting).</summary>
-        public event EventHandler<SerialConnectionState> ConnectionStateChanged;
+        public event EventHandler<SerialConnectionState>? ConnectionStateChanged;
 
         /// <summary>Raised when a line arrives that couldn't be parsed - useful for diagnostics/logging, not fatal.</summary>
-        public event EventHandler<string> UnparsedLineReceived;
+        public event EventHandler<string>? UnparsedLineReceived;
 
-        public SerialConnectionState State => _state;
+        //public SerialConnectionState State => _state;
         public string? PortName => _targetPortName;
 
         /// <summary>
@@ -160,10 +160,10 @@ namespace CwTrainer.Serial
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
+            if (_port == null) return;
+
             SerialPort port;
             lock (_portLock) { port = _port; }
-            if (port == null) return;
-
             string chunk;
             try
             {
@@ -306,7 +306,7 @@ namespace CwTrainer.Serial
         {
             if (_state == newState) return;
             _state = newState;
-            RaiseOnUiThread(() => ConnectionStateChanged.Invoke(this, newState));
+            RaiseOnUiThread(() => ConnectionStateChanged?.Invoke(this, newState));
         }
 
         private void RaiseOnUiThread(Action action)
