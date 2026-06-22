@@ -48,6 +48,11 @@ namespace CwTrainer
 
         private void ConnectButton_Click(object sender, EventArgs e)
         {
+            ConnectPort();
+        }
+
+        private void ConnectPort()
+        {
             if (portComboBox.SelectedItem is string portName)
             {
                 _previousEvent = null; // discard any partial element from a prior session
@@ -183,6 +188,11 @@ namespace CwTrainer
         {
             timelineView1.Width = this.ClientSize.Width - timelineView1.Left - 10;
             timelineView1.Height = this.ClientSize.Height - timelineView1.Top - statusStrip1.Height - 10;
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            ConnectPort();
         }
     }
 }

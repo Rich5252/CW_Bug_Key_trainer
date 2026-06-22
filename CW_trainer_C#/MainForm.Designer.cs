@@ -16,6 +16,7 @@ namespace CwTrainer
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             statusStrip1 = new StatusStrip();
             statusLabel = new ToolStripStatusLabel();
             CalStatusLabel = new ToolStripStatusLabel();
@@ -131,8 +132,10 @@ namespace CwTrainer
             Controls.Add(ConnectButton);
             Controls.Add(portComboBox);
             Controls.Add(statusStrip1);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
             Text = "MainForm";
+            Load += MainForm_Load;
             Resize += MainForm_Resize;
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
