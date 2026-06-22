@@ -138,6 +138,15 @@ namespace CwTrainer
                 return;
             }
 
+            // DIAGNOSTIC: show exactly what calibration is seeing, to compare
+            // against what the timeline view displays for the same character.
+            var marks = lastChar.MarkDurationsMs;
+            string marksDebug = string.Join(", ", marks.Select(m => m.ToString("F1")));
+            System.Diagnostics.Debug.WriteLine($"[Calibration] Last character marks (ms): {marksDebug}");
+            System.Diagnostics.Debug.WriteLine($"[Calibration] Total elements in this character: {lastChar.Elements.Count}");
+            foreach (var el in lastChar.Elements)
+                System.Diagnostics.Debug.WriteLine($"  {(el.IsMark ? "MARK " : "SPACE")} {el.DurationMs:F1}ms");
+
             var result = WpmCalibrator.Calibrate(lastChar.MarkDurationsMs);
 
             if (!result.Success)
