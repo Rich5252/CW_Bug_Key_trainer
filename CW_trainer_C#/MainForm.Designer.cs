@@ -33,7 +33,7 @@ namespace CwTrainer
             // statusStrip1
             // 
             statusStrip1.Items.AddRange(new ToolStripItem[] { statusLabel, CalStatusLabel });
-            statusStrip1.Location = new Point(0, 402);
+            statusStrip1.Location = new Point(0, 390);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Size = new Size(1193, 22);
             statusStrip1.TabIndex = 0;
@@ -122,7 +122,7 @@ namespace CwTrainer
             // 
             // MainForm
             // 
-            ClientSize = new Size(1193, 424);
+            ClientSize = new Size(1193, 412);
             Controls.Add(calibrateButton);
             Controls.Add(label1);
             Controls.Add(textBox2);
