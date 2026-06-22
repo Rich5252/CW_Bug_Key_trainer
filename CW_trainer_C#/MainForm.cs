@@ -172,8 +172,11 @@ namespace CwTrainer
             double roundedWpm = Math.Round(result.Wpm, 1);
             textBox2.Text = roundedWpm.ToString("F1");
 
-            statusLabel.Text = $"Calibrated: {roundedWpm:F1} WPM from {result.DitsUsed} dits " +
-                                $"(avg {result.DitLengthMs:F1}ms/dit)";
+            string logLine = $"Calibrated: {roundedWpm:F1} WPM from {result.DitsUsed} dits " +
+                  $"(avg {result.DitLengthMs:F1}ms/dit, variance {result.VarianceFraction:P1})";
+
+            CalStatusLabel.Text = logLine;
+            textBox1.AppendText(logLine + Environment.NewLine);
         }
     }
 }

@@ -33,22 +33,33 @@ namespace CwTrainer.Serial
         public double Wpm { get; }
         public int DitsUsed { get; }
 
-        private CalibrationResult(bool success, string failureReason, double ditLengthMs, double wpm, int ditsUsed)
+        /// <summary>
+        /// (max - min) / average of the durations used in this
+        /// calibration - a measure of how consistent the burst was.
+        /// 0 = perfectly uniform; e.g. 0.08 = 8% spread. Useful to log
+        /// alongside the WPM result so you can see how "clean" each
+        /// calibration attempt was over time, even on success.
+        /// </summary>
+        public double VarianceFraction { get; }
+
+        private CalibrationResult(bool success, string failureReason, double ditLengthMs, double wpm, int ditsUsed, double varianceFraction)
         {
             Success = success;
             FailureReason = failureReason;
             DitLengthMs = ditLengthMs;
             Wpm = wpm;
             DitsUsed = ditsUsed;
+            VarianceFraction = varianceFraction;
         }
 
-        public static CalibrationResult Fail(string reason) => new CalibrationResult(false, reason, 0, 0, 0);
+        public static CalibrationResult Fail(string reason, double varianceFraction = 0) =>
+            new CalibrationResult(false, reason, 0, 0, 0, varianceFraction);
 
-        public static CalibrationResult Ok(double ditLengthMs, int ditsUsed)
+        public static CalibrationResult Ok(double ditLengthMs, int ditsUsed, double varianceFraction)
         {
             // Standard WPM formula (PARIS standard): one dit = 1200/WPM ms.
             double wpm = 1200.0 / ditLengthMs;
-            return new CalibrationResult(true, null, ditLengthMs, wpm, ditsUsed);
+            return new CalibrationResult(true, null, ditLengthMs, wpm, ditsUsed, varianceFraction);
         }
     }
 
@@ -61,6 +72,9 @@ namespace CwTrainer.Serial
         /// shortest and longest of the 9 durations (5 marks + 4 spaces)
         /// must be within this fraction of their average. Tweak this
         /// const to loosen/tighten how strict the consistency check is.
+        /// 15% accommodates the natural mechanical variability of a bug
+        /// key's spring-driven dits, which won't be as perfectly uniform
+        /// as an electronic keyer.
         /// </summary>
         public const double ParisBurstToleranceFraction = 0.15;
 
@@ -116,13 +130,14 @@ namespace CwTrainer.Serial
                 return CalibrationResult.Fail(
                     $"Timing too inconsistent for calibration: durations ranged {min:F1}-{max:F1}ms " +
                     $"({spreadFraction:P0} spread, average {average:F1}ms) - tolerance is {ParisBurstToleranceFraction:P0}. " +
-                    "Try sending a steadier, more evenly-paced \"5\".");
+                    "Try sending a steadier, more evenly-paced \"5\".",
+                    spreadFraction);
             }
 
             double totalSpanMs = durations.Sum();
             double ditLengthMs = totalSpanMs / 9.0;
 
-            return CalibrationResult.Ok(ditLengthMs, ditsUsed: 5);
+            return CalibrationResult.Ok(ditLengthMs, ditsUsed: 5, spreadFraction);
         }
 
 #else
@@ -156,7 +171,11 @@ namespace CwTrainer.Serial
             }
 
             double averageDitMs = shortGroup.Average();
-            return CalibrationResult.Ok(averageDitMs, shortGroup.Count);
+            double minDit = shortGroup.Min();
+            double maxDit = shortGroup.Max();
+            double varianceFraction = (maxDit - minDit) / averageDitMs;
+
+            return CalibrationResult.Ok(averageDitMs, shortGroup.Count, varianceFraction);
         }
 
         private static int FindLargestGapIndex(List<double> sorted)
