@@ -11,26 +11,29 @@ namespace CwTrainer.Display
     /// <summary>
     /// Scrolling timeline display: one row per character, each row drawing
     /// its actual mark/space elements to scale, with a faint ideal-dit grid
-    /// behind them for visual comparison. New rows appear at the bottom;
-    /// older rows scroll up and off the top once they exceed the visible
-    /// area (standard ListBox-style behavior, implemented via a
-    /// fixed-capacity row list + AutoScroll).
+    /// behind them for visual comparison. The live row is pinned to a
+    /// fixed position at the bottom of the control; completed rows are
+    /// drawn working upward from it.
     ///
     /// Usage:
+    ///   - Call AttachHistory(history) once, passing the SAME ElementHistory
+    ///     instance your form uses for calibration/decoding - this control
+    ///     no longer maintains its own separate character-grouping logic,
+    ///     it purely visualizes whatever ElementHistory has already
+    ///     grouped. This guarantees the timeline view and calibration/
+    ///     decoding always agree about character boundaries, since
+    ///     there's only one piece of code deciding them.
     ///   - Set DitLengthMs from the operator's entered WPM (ditMs = 1200/wpm)
-    ///     before or during a session - grid rescales live.
-    ///   - Call AddElement(element) for every Element as it completes (same
-    ///     data your existing pairing logic already produces).
-    ///   - The control internally uses a TimelineRowBuilder to group
-    ///     elements into rows; you don't need to manage rows yourself.
+    ///     before or during a session - grid rescales live. This should be
+    ///     the SAME value you set on the attached ElementHistory.
     /// </summary>
     public sealed class TimelineView : UserControl
     {
-        private readonly TimelineRowBuilder _rowBuilder = new TimelineRowBuilder();
-        private readonly List<TimelineRow> _completedRows = new List<TimelineRow>();
-        private TimelineRow _liveRow = new TimelineRow();
+        private ElementHistory _history;
+        private readonly List<CharacterGroup> _completedRows = new List<CharacterGroup>();
+        private CharacterGroup _liveRow = new CharacterGroup();
 
-        /// <summary>Maximum completed rows retained in memory/displayed - older rows are discarded once exceeded (prevents unbounded growth in long sessions). UI shows the most recent rows that fit, scrolled to bottom.</summary>
+        /// <summary>Maximum completed rows retained in memory/displayed - older rows are discarded once exceeded (prevents unbounded growth in long sessions).</summary>
         [Category("Trainer")]
         [DefaultValue(500)]
         public int MaxRetainedRows { get; set; } = 500;
@@ -42,11 +45,18 @@ namespace CwTrainer.Display
 
         private double _ditLengthMs = 1200.0 / 20.0; // default 20 WPM
 
+        /// <summary>
+        /// Dit length in ms, used to scale the ideal grid. This is purely
+        /// for DRAWING - it does not affect character boundary detection
+        /// (that's entirely owned by the attached ElementHistory now).
+        /// Keep this in sync with the ElementHistory's own DitLengthMs by
+        /// setting both from the same place (e.g. your WPM textbox handler).
+        /// </summary>
         [Category("Trainer")]
         public double DitLengthMs
         {
             get => _ditLengthMs;
-            set { _ditLengthMs = value; _rowBuilder.DitLengthMs = value; Invalidate(); }
+            set { _ditLengthMs = value; Invalidate(); }
         }
 
         private bool ShouldSerializeDitLengthMs() => Math.Abs(_ditLengthMs - (1200.0 / 20.0)) > 0.0001;
@@ -80,40 +90,69 @@ namespace CwTrainer.Display
         {
             DoubleBuffered = true;
             BackColor = BackgroundColor;
-
-            // NOTE: no AutoScroll, no manual scroll-offset tracking either.
-            // The live row is pinned to a fixed Y position (see OnPaint);
-            // completed rows are positioned by counting backward from it,
-            // so there's nothing to "scroll" in the traditional sense -
-            // older rows simply stop being drawn once they'd fall above
-            // the visible area (y > -RowHeight check in OnPaint).
             SetStyle(ControlStyles.ResizeRedraw, true);
-
-            _rowBuilder.RowCompleted += (s, row) =>
-            {
-                _completedRows.Add(row);
-                if (_completedRows.Count > MaxRetainedRows)
-                    _completedRows.RemoveAt(0);
-                Invalidate(ClientRectangle);
-            };
-
-            _rowBuilder.LiveRowChanged += (s, row) =>
-            {
-                _liveRow = row;
-                Invalidate(ClientRectangle);
-            };
         }
 
-        /// <summary>Feed one completed Element (mark or space) - call for every element your serial pairing logic produces.</summary>
-        public void AddElement(Element element) => _rowBuilder.AddElement(element);
+        /// <summary>
+        /// Attach the ElementHistory this view should visualize. Call once,
+        /// passing the same instance your form uses for calibration so both
+        /// always agree about character boundaries. Safe to call again
+        /// later to switch to a different history instance (e.g. loading a
+        /// past session) - the previous subscription is cleanly removed.
+        /// </summary>
+        public void AttachHistory(ElementHistory history)
+        {
+            if (_history != null)
+            {
+                _history.CharacterCompleted -= OnCharacterCompleted;
+                _history.LiveCharacterChanged -= OnLiveCharacterChanged;
+            }
 
-        /// <summary>Clears all rows and starts fresh - call when starting a new session.</summary>
+            _history = history;
+            _completedRows.Clear();
+            _completedRows.AddRange(history.CompletedCharacters);
+            _liveRow = history.CurrentCharacter;
+
+            _history.CharacterCompleted += OnCharacterCompleted;
+            _history.LiveCharacterChanged += OnLiveCharacterChanged;
+
+            Invalidate(ClientRectangle);
+        }
+
+        private void OnCharacterCompleted(object sender, CharacterGroup row)
+        {
+            _completedRows.Add(row);
+            if (_completedRows.Count > MaxRetainedRows)
+                _completedRows.RemoveAt(0);
+            Invalidate(ClientRectangle);
+        }
+
+        private void OnLiveCharacterChanged(object sender, CharacterGroup row)
+        {
+            _liveRow = row;
+
+            // Don't force a repaint for an EMPTY live row - this happens
+            // right after a character closes (real space or timeout),
+            // before the operator has started the next one. Showing a
+            // visibly empty row at that moment is confusing (looks like
+            // "two rows for one character"); instead, just hold the
+            // previous frame until the new row actually has content. The
+            // empty row still exists correctly in the data
+            // (ElementHistory.CurrentCharacter), it's purely a display
+            // timing choice to not repaint for it yet.
+            if (row.Elements.Count == 0) return;
+
+            Invalidate(ClientRectangle);
+        }
+
+        /// <summary>Clears the displayed rows - call when starting a new session (after also calling Reset() on the attached ElementHistory).</summary>
         public void ClearSession()
         {
             _completedRows.Clear();
-            _rowBuilder.Reset();
+            _liveRow = _history?.CurrentCharacter ?? new CharacterGroup();
             Invalidate(ClientRectangle);
         }
+
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -126,24 +165,39 @@ namespace CwTrainer.Display
             // many rows have accumulated. This makes it much easier to
             // keep your eye on "what's happening right now" without
             // hunting for a moving target each time a row completes.
+            //
+            // An EMPTY live row (right after a character closes - by a
+            // real space or the silence timeout - before the operator has
+            // started the next one) is deliberately NOT drawn. Drawing an
+            // empty row at that moment looks like a confusing "extra blank
+            // line" sitting below the character that was just sent; better
+            // to keep the just-completed character visually anchored at
+            // the bottom position until a new mark actually arrives to
+            // justify showing a fresh live row.
             int liveRowY = ClientSize.Height - RowHeight - TopMargin;
 
-            DrawRow(g, _liveRow, liveRowY, isLive: true);
+            bool liveRowHasContent = _liveRow.Elements.Count > 0;
+            if (liveRowHasContent)
+            {
+                DrawRow(g, _liveRow, liveRowY, isLive: true);
+            }
 
-            // Completed rows are drawn working UPWARD from the live row,
-            // most recent immediately above it, older ones further up and
-            // eventually off the top of the visible area entirely (simply
-            // not drawn - no scrolling transform needed at all now, since
-            // position is computed directly from "rows back from live").
-            int y = liveRowY - RowSpacing - RowHeight;
+            // Completed rows are drawn working UPWARD from the live row's
+            // position - if the live row is empty (not drawn), the most
+            // recently completed row takes that bottom slot instead, so
+            // there's no visual gap left behind.
+            int y = liveRowHasContent
+                ? liveRowY - RowSpacing - RowHeight
+                : liveRowY;
             for (int i = _completedRows.Count - 1; i >= 0 && y > -RowHeight; i--)
             {
-                DrawRow(g, _completedRows[i], y, isLive: false);
+                bool isNewestCompleted = liveRowHasContent == false && i == _completedRows.Count - 1;
+                DrawRow(g, _completedRows[i], y, isLive: isNewestCompleted);
                 y -= RowHeight + RowSpacing;
             }
         }
 
-        private void DrawRow(Graphics g, TimelineRow row, int y, bool isLive)
+        private void DrawRow(Graphics g, CharacterGroup row, int y, bool isLive)
         {
             float ditPx = (float)(DitLengthMs * PixelsPerMs);
             if (ditPx <= 0) ditPx = 1;
@@ -151,7 +205,7 @@ namespace CwTrainer.Display
             // Determine how many dit-widths this row should span for grid
             // drawing - use the larger of (actual content) or a sensible
             // minimum so short/empty live rows still show a starter grid.
-            double rowDurationMs = row.TotalDurationMs;
+            double rowDurationMs = row.TotalDurationMs();
             float rowWidthPx = Math.Max((float)(rowDurationMs * PixelsPerMs), ditPx * 12);
 
             var rowRect = new RectangleF(LeftMargin, y, rowWidthPx, RowHeight);

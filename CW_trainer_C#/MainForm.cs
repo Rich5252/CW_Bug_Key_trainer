@@ -1,7 +1,11 @@
+#define USE_PARIS_BURST_CALIBRATION         //use the full PARIS burst (marks and spaces) for calibration, instead of just the marks.
+                                            // See WpmCalibrator.cs for details.
+
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using CwTrainer.Serial;
+
 
 namespace CwTrainer
 {
@@ -23,6 +27,8 @@ namespace CwTrainer
         public MainForm()
         {
             InitializeComponent();
+
+            timelineView1.AttachHistory(_history);
 
             // Constructed here (UI thread) so SynchronizationContext capture
             // inside KeyEventSerialPort is correct.
@@ -105,7 +111,6 @@ namespace CwTrainer
             // Placeholder - wire up live UI updates / analysis here.
             System.Diagnostics.Debug.WriteLine(element.ToString());
             textBox1.AppendText(element.ToString() + Environment.NewLine);
-            timelineView1.AddElement(element);
 
             _history.AddElement(element);
         }
@@ -115,6 +120,7 @@ namespace CwTrainer
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             _serial?.Dispose();
+            _history?.Dispose();
             base.OnFormClosing(e);
         }
 
@@ -147,7 +153,11 @@ namespace CwTrainer
             foreach (var el in lastChar.Elements)
                 System.Diagnostics.Debug.WriteLine($"  {(el.IsMark ? "MARK " : "SPACE")} {el.DurationMs:F1}ms");
 
+        #if USE_PARIS_BURST_CALIBRATION
+            var result = WpmCalibrator.Calibrate(lastChar.Elements);
+        #else
             var result = WpmCalibrator.Calibrate(lastChar.MarkDurationsMs);
+        #endif
 
             if (!result.Success)
             {
