@@ -18,6 +18,8 @@ namespace CwTrainer
         // consecutive transitions, not something present in a single event).
         private KeyEvent? _previousEvent;
 
+        private readonly ElementHistory _history = new ElementHistory();
+
         public MainForm()
         {
             InitializeComponent();
@@ -104,6 +106,8 @@ namespace CwTrainer
             System.Diagnostics.Debug.WriteLine(element.ToString());
             textBox1.AppendText(element.ToString() + Environment.NewLine);
             timelineView1.AddElement(element);
+
+            _history.AddElement(element);
         }
 
         
@@ -116,7 +120,41 @@ namespace CwTrainer
 
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
-            timelineView1.DitLengthMs = 1200.0 / ((double)Convert.ToInt32(textBox2.Text));
+            if (double.TryParse(textBox2.Text, out double wpm) && wpm > 0)
+            {
+                double ditMs = 1200.0 / wpm;
+                timelineView1.DitLengthMs = ditMs;
+                _history.DitLengthMs = ditMs;               // calibartion data
+            }
+        }
+
+        private void calibrateButton_Click(object sender, EventArgs e)
+        {
+            var lastChar = _history.LastCompletedCharacter;
+            if (lastChar == null)
+            {
+                MessageBox.Show("No completed character yet - send a character first (e.g. \"5\" for five dits), then press Calibrate.",
+                    "Calibration", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var result = WpmCalibrator.Calibrate(lastChar.MarkDurationsMs);
+
+            if (!result.Success)
+            {
+                MessageBox.Show(result.FailureReason, "Calibration",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Update the WPM textbox - this in turn fires textBox2_TextChanged,
+            // which propagates DitLengthMs to both the timeline view and the
+            // history. Rounded to 0.1 WPM resolution as requested.
+            double roundedWpm = Math.Round(result.Wpm, 1);
+            textBox2.Text = roundedWpm.ToString("F1");
+
+            statusLabel.Text = $"Calibrated: {roundedWpm:F1} WPM from {result.DitsUsed} dits " +
+                                $"(avg {result.DitLengthMs:F1}ms/dit)";
         }
     }
 }
