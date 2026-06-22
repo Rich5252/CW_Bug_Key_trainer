@@ -18,6 +18,7 @@ namespace CwTrainer
             components = new System.ComponentModel.Container();
             statusStrip1 = new StatusStrip();
             statusLabel = new ToolStripStatusLabel();
+            CalStatusLabel = new ToolStripStatusLabel();
             portComboBox = new ComboBox();
             Timer = new System.Windows.Forms.Timer(components);
             ConnectButton = new Button();
@@ -26,7 +27,6 @@ namespace CwTrainer
             textBox2 = new TextBox();
             label1 = new Label();
             calibrateButton = new Button();
-            CalStatusLabel = new ToolStripStatusLabel();
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -44,6 +44,12 @@ namespace CwTrainer
             statusLabel.Name = "statusLabel";
             statusLabel.Size = new Size(115, 17);
             statusLabel.Text = "COM not connected";
+            // 
+            // CalStatusLabel
+            // 
+            CalStatusLabel.Name = "CalStatusLabel";
+            CalStatusLabel.Size = new Size(127, 17);
+            CalStatusLabel.Text = "Cal Status - to be done";
             // 
             // portComboBox
             // 
@@ -114,12 +120,6 @@ namespace CwTrainer
             calibrateButton.UseVisualStyleBackColor = true;
             calibrateButton.Click += calibrateButton_Click;
             // 
-            // CalStatusLabel
-            // 
-            CalStatusLabel.Name = "CalStatusLabel";
-            CalStatusLabel.Size = new Size(127, 17);
-            CalStatusLabel.Text = "Cal Status - to be done";
-            // 
             // MainForm
             // 
             ClientSize = new Size(1193, 424);
@@ -133,6 +133,7 @@ namespace CwTrainer
             Controls.Add(statusStrip1);
             Name = "MainForm";
             Text = "MainForm";
+            Resize += MainForm_Resize;
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
             ResumeLayout(false);

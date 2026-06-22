@@ -115,7 +115,7 @@ namespace CwTrainer
             _history.AddElement(element);
         }
 
-        
+
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
@@ -153,11 +153,11 @@ namespace CwTrainer
             foreach (var el in lastChar.Elements)
                 System.Diagnostics.Debug.WriteLine($"  {(el.IsMark ? "MARK " : "SPACE")} {el.DurationMs:F1}ms");
 
-        #if USE_PARIS_BURST_CALIBRATION
+#if USE_PARIS_BURST_CALIBRATION
             var result = WpmCalibrator.Calibrate(lastChar.Elements);
-        #else
+#else
             var result = WpmCalibrator.Calibrate(lastChar.MarkDurationsMs);
-        #endif
+#endif
 
             if (!result.Success)
             {
@@ -177,6 +177,12 @@ namespace CwTrainer
 
             CalStatusLabel.Text = logLine;
             textBox1.AppendText(logLine + Environment.NewLine);
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            timelineView1.Width = this.ClientSize.Width - timelineView1.Left - 10;
+            timelineView1.Height = this.ClientSize.Height - timelineView1.Top - statusStrip1.Height - 10;
         }
     }
 }
