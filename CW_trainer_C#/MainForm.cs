@@ -1,10 +1,12 @@
 #define USE_PARIS_BURST_CALIBRATION         //use the full PARIS burst (marks and spaces) for calibration, instead of just the marks.
                                             // See WpmCalibrator.cs for details.
 
+using CwTrainer.Serial;
 using System;
 using System.Collections.Generic;
+using System.Security.Policy;
 using System.Windows.Forms;
-using CwTrainer.Serial;
+using static System.Windows.Forms.Design.AxImporter;
 
 
 namespace CwTrainer
@@ -209,6 +211,19 @@ namespace CwTrainer
         private void buttonClearText_Click(object sender, EventArgs e)
         {
             decodedTextBox.Text = "";
+        }
+
+        private void clearButton_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                decodedTextBox.Clear();
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                _history.Reset();
+                timelineView1.ClearSession();
+            }
         }
     }
 }

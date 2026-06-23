@@ -137,9 +137,9 @@ namespace CwTrainer
             buttonClearText.Name = "buttonClearText";
             buttonClearText.Size = new Size(75, 23);
             buttonClearText.TabIndex = 9;
-            buttonClearText.Text = "Cl;ear text";
+            buttonClearText.Text = "Clear text";
             buttonClearText.UseVisualStyleBackColor = true;
-            buttonClearText.Click += buttonClearText_Click;
+            buttonClearText.MouseUp += clearButton_MouseUp;
             // 
             // MainForm
             // 
