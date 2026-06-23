@@ -32,6 +32,15 @@ namespace CwTrainer.Serial
         /// only, useful for diagnostics, not required for normal use.
         /// </summary>
         public bool ClosedByTimeout { get; set; }
+
+        /// <summary>
+        /// The decoded character, set by a MorseDecoder (or similar) after
+        /// this group completes - null until decode has actually run.
+        /// By convention, '~' means decode was attempted but the timing
+        /// pattern didn't match any known Morse character (not the same
+        /// as null, which means "not decoded yet at all").
+        /// </summary>
+        public char? DecodedChar { get; set; }
     }
 
     /// <summary>
@@ -70,6 +79,13 @@ namespace CwTrainer.Serial
         /// </summary>
         public double TimeoutMultiplier { get; set; } = 2.0; // i.e. timeout = 2x the real-space threshold
 
+        /// <summary>Tolerance fractions for MorseDecoder's mark classification - keep these in sync with TimelineView's GoodToleranceFraction/PoorToleranceFraction so decode and the visual coloring always agree about what's "Bad".</summary>
+        public double GoodToleranceFraction { get; set; } = 0.15;
+        public double PoorToleranceFraction { get; set; } = 0.35;
+
+        /// <summary>If true, attempt to decode each character via MorseDecoder as it completes, setting CharacterGroup.DecodedChar. Set false to disable decode entirely (e.g. before calibration, when DitLengthMs may not be trustworthy yet).</summary>
+        public bool DecodeEnabled { get; set; } = true;
+
         private readonly List<CharacterGroup> _completedCharacters = new List<CharacterGroup>();
         private CharacterGroup _currentCharacter = new CharacterGroup();
         private readonly System.Windows.Forms.Timer _timeoutTimer;
@@ -81,13 +97,18 @@ namespace CwTrainer.Serial
         public CharacterGroup CurrentCharacter => _currentCharacter;
 
         /// <summary>Raised when a character is closed, by either a real inter-character space or the silence timeout. Check CharacterGroup.ClosedByTimeout if the distinction matters to your consumer.</summary>
-        public event EventHandler<CharacterGroup>? CharacterCompleted;
+        public event EventHandler<CharacterGroup> CharacterCompleted;
 
         /// <summary>Raised whenever the in-progress character changes (new element added, or it was just reset after closing) - subscribe to this to repaint a live/current-row display.</summary>
-        public event EventHandler<CharacterGroup>? LiveCharacterChanged;
+        public event EventHandler<CharacterGroup> LiveCharacterChanged;
+
+        private static int _instanceCounter = 0;
+        private readonly int _instanceId;
 
         public ElementHistory()
         {
+            _instanceId = ++_instanceCounter;
+            
             // One-shot timer, re-armed after every element to fire at the
             // (longer) TIMEOUT window, not the normal real-space threshold.
             // During normal sending, the next real mark always arrives well
@@ -155,15 +176,36 @@ namespace CwTrainer.Serial
         private void CloseCurrentCharacter(bool closedByTimeout)
         {
             _currentCharacter.ClosedByTimeout = closedByTimeout;
-            _completedCharacters.Add(_currentCharacter);
-            CharacterCompleted?.Invoke(this, _currentCharacter);
 
+            if (DecodeEnabled)
+            {
+                _currentCharacter.DecodedChar = MorseDecoder.Decode(
+                    _currentCharacter, DitLengthMs, GoodToleranceFraction, PoorToleranceFraction);
+            }
+
+            CharacterGroup justCompleted = _currentCharacter;
+            _completedCharacters.Add(justCompleted);
+
+            // IMPORTANT: reset _currentCharacter and raise LiveCharacterChanged
+            // BEFORE raising CharacterCompleted. CharacterCompleted's
+            // subscriber (TimelineView) forces an immediate synchronous
+            // repaint (Refresh()) - if the reset happened AFTER that
+            // repaint, the paint would run while _currentCharacter (and
+            // therefore the view's _liveRow, which is the SAME object
+            // reference) still pointed at the just-closed character,
+            // causing it to be drawn twice: once via the "live row" branch
+            // (stale, not yet reset) and once via the "newest completed
+            // row" branch (the same object, now in _completedCharacters).
+            // Resetting first ensures any forced repaint sees consistent,
+            // already-current state.
             _currentCharacter = new CharacterGroup();
             LiveCharacterChanged?.Invoke(this, _currentCharacter);
+
+            CharacterCompleted?.Invoke(this, justCompleted);
         }
 
         /// <summary>The most recently COMPLETED character, or null if none yet.</summary>
-        public CharacterGroup? LastCompletedCharacter =>
+        public CharacterGroup LastCompletedCharacter =>
             _completedCharacters.Count > 0 ? _completedCharacters[_completedCharacters.Count - 1] : null;
 
         public void Reset()

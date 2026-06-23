@@ -29,7 +29,7 @@ namespace CwTrainer.Display
     /// </summary>
     public sealed class TimelineView : UserControl
     {
-        private ElementHistory? _history;
+        private ElementHistory _history;
         private readonly List<CharacterGroup> _completedRows = new List<CharacterGroup>();
         private CharacterGroup _liveRow = new CharacterGroup();
 
@@ -77,6 +77,9 @@ namespace CwTrainer.Display
         private const int LeftMargin = 8;
         private const int TopMargin = 8;
 
+        /// <summary>Width in pixels reserved for the decoded-character column, drawn before the timing grid starts.</summary>
+        private const int CharColumnWidth = 24;
+
         private static readonly Color BackgroundColor = Color.FromArgb(24, 24, 28);
         private static readonly Color GridLineColor = Color.FromArgb(120, 120, 132);
         private static readonly Color GridLineColorCharBoundary = Color.FromArgb(190, 190, 210);
@@ -85,6 +88,10 @@ namespace CwTrainer.Display
         private static readonly Color BadColor = Color.FromArgb(220, 80, 70);
         private static readonly Color SpaceGapColor = Color.FromArgb(40, 40, 46);
         private static readonly Color LiveRowOutline = Color.FromArgb(120, 160, 220);
+        private static readonly Color DecodedCharColor = Color.FromArgb(220, 220, 230);
+        private static readonly Color UndecodedCharColor = Color.FromArgb(140, 100, 100);
+
+        private static readonly Font CharFont = new Font("Consolas", 11f, FontStyle.Bold);
 
         public TimelineView()
         {
@@ -100,7 +107,7 @@ namespace CwTrainer.Display
         /// later to switch to a different history instance (e.g. loading a
         /// past session) - the previous subscription is cleanly removed.
         /// </summary>
-        public void AttachHistory(ElementHistory? history)
+        public void AttachHistory(ElementHistory history)
         {
             if (_history != null)
             {
@@ -110,24 +117,25 @@ namespace CwTrainer.Display
 
             _history = history;
             _completedRows.Clear();
-            _completedRows.AddRange(history?.CompletedCharacters ?? Enumerable.Empty<CharacterGroup>());
-            _liveRow = history?.CurrentCharacter ?? new CharacterGroup();
+            _completedRows.AddRange(history.CompletedCharacters);
+            _liveRow = history.CurrentCharacter;
 
-            _history?.CharacterCompleted += OnCharacterCompleted;
-            _history?.LiveCharacterChanged += OnLiveCharacterChanged;
+            _history.CharacterCompleted += OnCharacterCompleted;
+            _history.LiveCharacterChanged += OnLiveCharacterChanged;
 
             Invalidate(ClientRectangle);
         }
 
-        private void OnCharacterCompleted(object? sender, CharacterGroup row)
+        private void OnCharacterCompleted(object sender, CharacterGroup row)
         {
             _completedRows.Add(row);
             if (_completedRows.Count > MaxRetainedRows)
                 _completedRows.RemoveAt(0);
-            Invalidate(ClientRectangle);
+            _scrollOffsetRows = 0; // new data always snaps view back to the bottom
+            Refresh(); // Invalidate immediately followed by a forced synchronous paint
         }
 
-        private void OnLiveCharacterChanged(object? sender, CharacterGroup row)
+        private void OnLiveCharacterChanged(object sender, CharacterGroup row)
         {
             _liveRow = row;
 
@@ -142,6 +150,7 @@ namespace CwTrainer.Display
             // timing choice to not repaint for it yet.
             if (row.Elements.Count == 0) return;
 
+            _scrollOffsetRows = 0; // new data always snaps view back to the bottom
             Invalidate(ClientRectangle);
         }
 
@@ -160,12 +169,16 @@ namespace CwTrainer.Display
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            
             // Live row is pinned to a fixed Y position near the bottom of
-            // the visible client area - it never moves, regardless of how
-            // many rows have accumulated. This makes it much easier to
-            // keep your eye on "what's happening right now" without
-            // hunting for a moving target each time a row completes.
-            //
+            // the visible client area when NOT scrolled back (_scrollOffsetRows
+            // == 0). Scrolling shifts the whole stack up by N row-heights via
+            // _scrollOffsetRows, measured in whole rows rather than pixels -
+            // simpler to reason about and to clamp than a continuous pixel
+            // offset, and mouse-wheel naturally steps in row-sized chunks.
+            int liveRowY = ClientSize.Height - RowHeight - TopMargin
+                           + _scrollOffsetRows * (RowHeight + RowSpacing);
+
             // An EMPTY live row (right after a character closes - by a
             // real space or the silence timeout - before the operator has
             // started the next one) is deliberately NOT drawn. Drawing an
@@ -174,12 +187,10 @@ namespace CwTrainer.Display
             // to keep the just-completed character visually anchored at
             // the bottom position until a new mark actually arrives to
             // justify showing a fresh live row.
-            int liveRowY = ClientSize.Height - RowHeight - TopMargin;
-
             bool liveRowHasContent = _liveRow.Elements.Count > 0;
             if (liveRowHasContent)
             {
-                DrawRow(g, _liveRow, liveRowY, isLive: true);
+                DrawRow(g, _liveRow, liveRowY, isLive: _scrollOffsetRows == 0);
             }
 
             // Completed rows are drawn working UPWARD from the live row's
@@ -191,10 +202,39 @@ namespace CwTrainer.Display
                 : liveRowY;
             for (int i = _completedRows.Count - 1; i >= 0 && y > -RowHeight; i--)
             {
-                bool isNewestCompleted = liveRowHasContent == false && i == _completedRows.Count - 1;
+                bool isNewestCompleted = liveRowHasContent == false && i == _completedRows.Count - 1
+                                          && _scrollOffsetRows == 0;
                 DrawRow(g, _completedRows[i], y, isLive: isNewestCompleted);
                 y -= RowHeight + RowSpacing;
             }
+        }
+
+        /// <summary>
+        /// How many rows the view is scrolled back from "live" (0 = showing
+        /// the current/most recent row at the bottom, as before). Increases
+        /// as the operator scrolls UP to review history. Always reset to 0
+        /// when new data arrives, per the simple "always snap to bottom on
+        /// new data" behavior - there's no auto-follow override to fight
+        /// here, scrolling back is purely a momentary review action.
+        /// </summary>
+        private int _scrollOffsetRows = 0;
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+
+            // SystemInformation.MouseWheelScrollLines gives the user's
+            // configured wheel sensitivity; e.Delta is +/-120 per notch by
+            // convention. One notch = one row feels natural here rather
+            // than scaling by the system's line setting (which is tuned
+            // for text line-scrolling, not this control's row size).
+            int notches = e.Delta / 120;
+            _scrollOffsetRows += notches; // wheel up (positive delta) scrolls further back into history
+
+            int maxScrollBack = _completedRows.Count; // can't scroll back further than we have rows for
+            _scrollOffsetRows = Math.Max(0, Math.Min(_scrollOffsetRows, maxScrollBack));
+
+            Invalidate(ClientRectangle);
         }
 
         private void DrawRow(Graphics g, CharacterGroup row, int y, bool isLive)
@@ -202,13 +242,44 @@ namespace CwTrainer.Display
             float ditPx = (float)(DitLengthMs * PixelsPerMs);
             if (ditPx <= 0) ditPx = 1;
 
+            // Grid/blocks start after the reserved character column, not at
+            // LeftMargin directly - LeftMargin is now just the char
+            // column's own left padding.
+            float gridStartX = LeftMargin + CharColumnWidth;
+
             // Determine how many dit-widths this row should span for grid
             // drawing - use the larger of (actual content) or a sensible
             // minimum so short/empty live rows still show a starter grid.
             double rowDurationMs = row.TotalDurationMs();
             float rowWidthPx = Math.Max((float)(rowDurationMs * PixelsPerMs), ditPx * 12);
 
-            var rowRect = new RectangleF(LeftMargin, y, rowWidthPx, RowHeight);
+            var rowRect = new RectangleF(gridStartX, y, rowWidthPx, RowHeight);
+
+            // Decoded character column - shown whenever DecodedChar has a
+            // value, regardless of isLive. isLive here means "draw with
+            // the dotted outline because this row occupies the bottom
+            // slot" - it does NOT mean "this is the genuinely in-progress
+            // row with no decode yet". A completed, decoded row can
+            // legitimately be drawn with isLive=true (when the live row
+            // itself is empty and the newest completed row takes the
+            // bottom slot) - in that case it still has a real DecodedChar
+            // and must show it. Only the TRUE live/in-progress row (passed
+            // in from the _liveRow branch in OnPaint) will ever have
+            // DecodedChar == null, since decode only ever runs inside
+            // CloseCurrentCharacter - so checking HasValue alone is
+            // sufficient and correct, no isLive check needed.
+            if (row.DecodedChar.HasValue)
+            {
+                Color textColor = row.DecodedChar.Value == '~' ? UndecodedCharColor : DecodedCharColor;
+                var charRect = new RectangleF(0, y, LeftMargin + CharColumnWidth, RowHeight);
+                using var textBrush = new SolidBrush(textColor);
+                using var stringFormat = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center,
+                };
+                g.DrawString(row.DecodedChar.Value.ToString(), CharFont, textBrush, charRect, stringFormat);
+            }
 
             // Faint ideal grid: ticks every 1 dit, slightly stronger every
             // 3 dits (the classic inter-character space width) so the
@@ -226,7 +297,7 @@ namespace CwTrainer.Display
             g.SmoothingMode = SmoothingMode.None;
 
             int ditIndex = 0;
-            for (float gx = LeftMargin; gx <= LeftMargin + rowWidthPx; gx += ditPx, ditIndex++)
+            for (float gx = gridStartX; gx <= gridStartX + rowWidthPx; gx += ditPx, ditIndex++)
             {
                 bool isCharBoundaryTick = ditIndex % 3 == 0;
                 int snappedX = (int)Math.Round(gx);
@@ -265,7 +336,7 @@ namespace CwTrainer.Display
             // AntiAlias) since filled rectangles benefit from smooth edges
             // and aren't subject to the same hairline-jitter problem thin
             // strokes have.
-            float x = LeftMargin;
+            float x = gridStartX;
             foreach (var element in row.Elements)
             {
                 float widthPx = (float)(element.DurationMs * PixelsPerMs);
@@ -292,23 +363,22 @@ namespace CwTrainer.Display
 
         /// <summary>
         /// Color-codes a mark by how close its duration is to the nearest
-        /// "ideal" multiple of a dit (1x = dit, 3x = dah) - this lets both
-        /// dits and dahs be judged against their own correct target, rather
-        /// than assuming every mark should be exactly one dit.
+        /// "ideal" multiple of a dit (1x = dit, 3x = dah) - delegates to
+        /// MarkClassifier, the single shared definition of mark quality
+        /// also used by MorseDecoder, so the visual coloring and the
+        /// decoder's strict "any red mark fails decode" rule always agree.
         /// </summary>
         private Color ColorForMark(double durationMs, double ditLengthMs)
         {
-            if (ditLengthMs <= 0) return GoodColor;
+            var quality = MarkClassifier.Classify(durationMs, ditLengthMs,
+                GoodToleranceFraction, PoorToleranceFraction, out _);
 
-            double ratio = durationMs / ditLengthMs;
-            // Snap to whichever ideal target (dit=1 or dah=3) is closer,
-            // so a slightly-long dit isn't compared against a dah's target.
-            double nearestIdeal = ratio < 2.0 ? 1.0 : 3.0;
-            double deviationFraction = Math.Abs(ratio - nearestIdeal) / nearestIdeal;
-
-            if (deviationFraction <= GoodToleranceFraction) return GoodColor;
-            if (deviationFraction <= PoorToleranceFraction) return WarnColor;
-            return BadColor;
+            return quality switch
+            {
+                MarkQuality.Good => GoodColor,
+                MarkQuality.Warn => WarnColor,
+                _ => BadColor,
+            };
         }
 
         protected override void OnResize(EventArgs e)

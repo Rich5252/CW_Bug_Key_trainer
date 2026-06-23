@@ -28,13 +28,15 @@ namespace CwTrainer
             textBox2 = new TextBox();
             label1 = new Label();
             calibrateButton = new Button();
+            decodedTextBox = new TextBox();
+            buttonClearText = new Button();
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // statusStrip1
             // 
             statusStrip1.Items.AddRange(new ToolStripItem[] { statusLabel, CalStatusLabel });
-            statusStrip1.Location = new Point(0, 390);
+            statusStrip1.Location = new Point(0, 399);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Size = new Size(1193, 22);
             statusStrip1.TabIndex = 0;
@@ -89,7 +91,7 @@ namespace CwTrainer
             timelineView1.DitLengthMs = 54.545454545454547D;
             timelineView1.Location = new Point(130, 10);
             timelineView1.Name = "timelineView1";
-            timelineView1.Size = new Size(1054, 371);
+            timelineView1.Size = new Size(1054, 354);
             timelineView1.TabIndex = 4;
             // 
             // textBox2
@@ -113,7 +115,7 @@ namespace CwTrainer
             // 
             // calibrateButton
             // 
-            calibrateButton.Location = new Point(19, 341);
+            calibrateButton.Location = new Point(19, 338);
             calibrateButton.Name = "calibrateButton";
             calibrateButton.Size = new Size(75, 23);
             calibrateButton.TabIndex = 7;
@@ -121,9 +123,29 @@ namespace CwTrainer
             calibrateButton.UseVisualStyleBackColor = true;
             calibrateButton.Click += calibrateButton_Click;
             // 
+            // decodedTextBox
+            // 
+            decodedTextBox.Location = new Point(131, 370);
+            decodedTextBox.Name = "decodedTextBox";
+            decodedTextBox.Size = new Size(1050, 23);
+            decodedTextBox.TabIndex = 8;
+            decodedTextBox.WordWrap = false;
+            // 
+            // buttonClearText
+            // 
+            buttonClearText.Location = new Point(19, 369);
+            buttonClearText.Name = "buttonClearText";
+            buttonClearText.Size = new Size(75, 23);
+            buttonClearText.TabIndex = 9;
+            buttonClearText.Text = "Cl;ear text";
+            buttonClearText.UseVisualStyleBackColor = true;
+            buttonClearText.Click += buttonClearText_Click;
+            // 
             // MainForm
             // 
-            ClientSize = new Size(1193, 412);
+            ClientSize = new Size(1193, 421);
+            Controls.Add(buttonClearText);
+            Controls.Add(decodedTextBox);
             Controls.Add(calibrateButton);
             Controls.Add(label1);
             Controls.Add(textBox2);
@@ -158,5 +180,7 @@ namespace CwTrainer
 		private Label label1;
         private Button calibrateButton;
         private ToolStripStatusLabel CalStatusLabel;
+        private TextBox decodedTextBox;
+        private Button buttonClearText;
     }
 }

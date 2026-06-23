@@ -29,6 +29,7 @@ namespace CwTrainer
             InitializeComponent();
 
             timelineView1.AttachHistory(_history);
+            _history.CharacterCompleted += OnCharacterCompleted;
 
             // Constructed here (UI thread) so SynchronizationContext capture
             // inside KeyEventSerialPort is correct.
@@ -114,10 +115,18 @@ namespace CwTrainer
         private void OnElementCompleted(Element element)
         {
             // Placeholder - wire up live UI updates / analysis here.
-            System.Diagnostics.Debug.WriteLine(element.ToString());
+            //System.Diagnostics.Debug.WriteLine(element.ToString());
             textBox1.AppendText(element.ToString() + Environment.NewLine);
 
             _history.AddElement(element);
+        }
+
+        private void OnCharacterCompleted(object sender, CharacterGroup group)
+        {
+            if (group.DecodedChar.HasValue)
+            {
+                decodedTextBox.AppendText(group.DecodedChar.Value.ToString());
+            }
         }
 
 
@@ -186,13 +195,20 @@ namespace CwTrainer
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
+            decodedTextBox.Width = this.ClientSize.Width - decodedTextBox.Left - 10;
+            decodedTextBox.Top = statusStrip1.Top - decodedTextBox.Height - 5;
             timelineView1.Width = this.ClientSize.Width - timelineView1.Left - 10;
-            timelineView1.Height = this.ClientSize.Height - timelineView1.Top - statusStrip1.Height - 10;
+            timelineView1.Height = this.ClientSize.Height - decodedTextBox.Height - statusStrip1.Height - 20;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
             ConnectPort();
+        }
+
+        private void buttonClearText_Click(object sender, EventArgs e)
+        {
+            decodedTextBox.Text = "";
         }
     }
 }
