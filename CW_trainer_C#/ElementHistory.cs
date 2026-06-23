@@ -34,13 +34,15 @@ namespace CwTrainer.Serial
         public bool ClosedByTimeout { get; set; }
 
         /// <summary>
-        /// The decoded character, set by a MorseDecoder (or similar) after
-        /// this group completes - null until decode has actually run.
-        /// By convention, '~' means decode was attempted but the timing
-        /// pattern didn't match any known Morse character (not the same
-        /// as null, which means "not decoded yet at all").
+        /// The decoded text, set by a MorseDecoder (or similar) after this
+        /// group completes - null until decode has actually run. Usually a
+        /// single character, but may be a multi-character prosign (e.g.
+        /// "SK", "BK") for patterns sent as a run-together digraph. By
+        /// convention, MorseDecoder.UndecodedText ("~") means decode was
+        /// attempted but the timing pattern didn't match any known entry
+        /// (not the same as null, which means "not decoded yet at all").
         /// </summary>
-        public char? DecodedChar { get; set; }
+        public string DecodedText { get; set; }
     }
 
     /// <summary>
@@ -108,7 +110,8 @@ namespace CwTrainer.Serial
         public ElementHistory()
         {
             _instanceId = ++_instanceCounter;
-            
+            System.Diagnostics.Debug.WriteLine($"[ElementHistory] Constructed instance #{_instanceId}");
+
             // One-shot timer, re-armed after every element to fire at the
             // (longer) TIMEOUT window, not the normal real-space threshold.
             // During normal sending, the next real mark always arrives well
@@ -120,6 +123,9 @@ namespace CwTrainer.Serial
             _timeoutTimer = new System.Windows.Forms.Timer();
             _timeoutTimer.Tick += (s, e) =>
             {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[ElementHistory #{_instanceId}] Tick fired, currentCharacter.Elements={_currentCharacter.Elements.Count}, " +
+                    $"timer.Enabled={_timeoutTimer.Enabled}");
                 _timeoutTimer.Stop();
                 if (_currentCharacter.Elements.Count > 0)
                 {
@@ -179,7 +185,7 @@ namespace CwTrainer.Serial
 
             if (DecodeEnabled)
             {
-                _currentCharacter.DecodedChar = MorseDecoder.Decode(
+                _currentCharacter.DecodedText = MorseDecoder.Decode(
                     _currentCharacter, DitLengthMs, GoodToleranceFraction, PoorToleranceFraction);
             }
 

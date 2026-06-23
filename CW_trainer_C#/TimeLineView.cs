@@ -169,7 +169,12 @@ namespace CwTrainer.Display
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            
+            // TEMP DIAGNOSTIC
+            System.Diagnostics.Debug.WriteLine(
+                $"[OnPaint] liveRow.Elements={_liveRow.Elements.Count}, " +
+                $"completedRows={_completedRows.Count}, " +
+                $"lastCompletedDecodedChar={(_completedRows.Count > 0 ? _completedRows[_completedRows.Count - 1].DecodedText?.ToString() ?? "null" : "n/a")}");
+
             // Live row is pinned to a fixed Y position near the bottom of
             // the visible client area when NOT scrolled back (_scrollOffsetRows
             // == 0). Scrolling shifts the whole stack up by N row-heights via
@@ -255,22 +260,29 @@ namespace CwTrainer.Display
 
             var rowRect = new RectangleF(gridStartX, y, rowWidthPx, RowHeight);
 
-            // Decoded character column - shown whenever DecodedChar has a
+            // Decoded text column - shown whenever DecodedText has a
             // value, regardless of isLive. isLive here means "draw with
             // the dotted outline because this row occupies the bottom
             // slot" - it does NOT mean "this is the genuinely in-progress
             // row with no decode yet". A completed, decoded row can
             // legitimately be drawn with isLive=true (when the live row
             // itself is empty and the newest completed row takes the
-            // bottom slot) - in that case it still has a real DecodedChar
+            // bottom slot) - in that case it still has real DecodedText
             // and must show it. Only the TRUE live/in-progress row (passed
             // in from the _liveRow branch in OnPaint) will ever have
-            // DecodedChar == null, since decode only ever runs inside
-            // CloseCurrentCharacter - so checking HasValue alone is
+            // DecodedText == null, since decode only ever runs inside
+            // CloseCurrentCharacter - so checking for null alone is
             // sufficient and correct, no isLive check needed.
-            if (row.DecodedChar.HasValue)
+            //
+            // NOTE: DecodedText may be a multi-character prosign (e.g.
+            // "SK", "BK") rather than a single letter - the fixed-width
+            // CharColumnWidth was sized for single characters, so longer
+            // prosign text may visually overflow/get clipped at the
+            // default font size. Acceptable for now; revisit column width
+            // or font scaling if prosigns become a frequent display need.
+            if (!string.IsNullOrEmpty(row.DecodedText))
             {
-                Color textColor = row.DecodedChar.Value == '~' ? UndecodedCharColor : DecodedCharColor;
+                Color textColor = row.DecodedText == MorseDecoder.UndecodedText ? UndecodedCharColor : DecodedCharColor;
                 var charRect = new RectangleF(0, y, LeftMargin + CharColumnWidth, RowHeight);
                 using var textBrush = new SolidBrush(textColor);
                 using var stringFormat = new StringFormat
@@ -278,7 +290,7 @@ namespace CwTrainer.Display
                     Alignment = StringAlignment.Center,
                     LineAlignment = StringAlignment.Center,
                 };
-                g.DrawString(row.DecodedChar.Value.ToString(), CharFont, textBrush, charRect, stringFormat);
+                g.DrawString(row.DecodedText, CharFont, textBrush, charRect, stringFormat);
             }
 
             // Faint ideal grid: ticks every 1 dit, slightly stronger every

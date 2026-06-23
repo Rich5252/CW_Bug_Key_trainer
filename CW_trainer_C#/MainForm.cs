@@ -125,9 +125,9 @@ namespace CwTrainer
 
         private void OnCharacterCompleted(object sender, CharacterGroup group)
         {
-            if (group.DecodedChar.HasValue)
+            if (!string.IsNullOrEmpty(group.DecodedText))
             {
-                decodedTextBox.AppendText(group.DecodedChar.Value.ToString());
+                decodedTextBox.AppendText(group.DecodedText);
             }
         }
 
