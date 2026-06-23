@@ -64,7 +64,7 @@ namespace CwTrainer
             // 
             // ConnectButton
             // 
-            ConnectButton.Location = new Point(12, 92);
+            ConnectButton.Location = new Point(19, 44);
             ConnectButton.Name = "ConnectButton";
             ConnectButton.Size = new Size(75, 23);
             ConnectButton.TabIndex = 2;
@@ -74,11 +74,11 @@ namespace CwTrainer
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(12, 121);
+            textBox1.Location = new Point(12, 83);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
             textBox1.ScrollBars = ScrollBars.Vertical;
-            textBox1.Size = new Size(109, 164);
+            textBox1.Size = new Size(109, 210);
             textBox1.TabIndex = 3;
             // 
             // timelineView1
@@ -134,7 +134,7 @@ namespace CwTrainer
             Controls.Add(statusStrip1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
-            Text = "MainForm";
+            Text = "CW Bug Key Trainer";
             Load += MainForm_Load;
             Resize += MainForm_Resize;
             statusStrip1.ResumeLayout(false);
