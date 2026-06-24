@@ -206,13 +206,55 @@ namespace CwTrainer
             textBox1.AppendText(logLine + Environment.NewLine);
         }
 
+
+        bool freezeSpliter = true;
+
         private void MainForm_Resize(object sender, EventArgs e)
         {
-            decodedTextBox.Width = this.ClientSize.Width - decodedTextBox.Left - 10;
-            decodedTextBox.Top = statusStrip1.Top - decodedTextBox.Height - 5;
-            timelineView1.Width = this.ClientSize.Width - timelineView1.Left - 10;
-            timelineView1.Height = this.ClientSize.Height - decodedTextBox.Height - statusStrip1.Height - 20;
+            freezeSpliter = true;
+
+            splitContainer1.Height = this.ClientSize.Height - statusStrip1.Height - 10;
+            splitContainer1.Width = this.ClientSize.Width - splitContainer1.Left - 10;
+            splitContainer1.SplitterDistance = paretoChartControl1.Width + 5;
+
+            panel4.Top = splitContainer1.Bottom - panel4.Height;            //contains bottom left row of controls
+            panel4.Width = splitContainer1.Panel1.Width;
+
+            timelineView1.Width = splitContainer1.Panel2.Width;
+            timelineView1.Height = splitContainer1.Height - decodedTextBox.Height - 10;
+
+            decodedTextBox.Width = splitContainer1.Panel2.Width - 5;
+            decodedTextBox.Top = panel4.Top;
+
+            AdjustChartSize();
+            freezeSpliter = false;
         }
+
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+            if (freezeSpliter) return;          // don't allow user to move splitter - we control it in MainForm_Resize
+
+            AdjustChartSize();
+        }
+
+        private void AdjustChartSize()
+        {
+            //fit timeline into the right panel of the split container, and keep the decoded text box below it
+            timelineView1.Width = splitContainer1.Panel2.Width;
+            decodedTextBox.Width = splitContainer1.Panel2.Width - 5;
+
+            //move panel1 and panel3 radio buttons to above the panel4 buttons
+            panel1.Top = splitContainer1.Panel2.Height - panel1.Height - panel3.Height;
+            panel3.Top = panel1.Top;
+
+            //chart control expanded into the left panel of the split container, so keep it sized to fill that panel
+            paretoChartControl1.Width = splitContainer1.Panel1.Width - 5;
+            paretoChartControl1.Height = panel1.Top - paretoChartControl1.Top - 10;
+
+            panel4.Width = splitContainer1.Panel1.Width;
+            buttonClearText.Left = splitContainer1.Panel1.Width - buttonClearText.Width - 5;
+        }
+
 
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -269,6 +311,9 @@ namespace CwTrainer
             _currentMetric = rbSpead.Checked ? ParetoMetric.SpreadFraction : ParetoMetric.MeanAbsoluteDeviation;
             RefreshParetoChart();
         }
+
+
+
 
         // Wire your four buttons to set _currentMetric/_showingCharacters then call RefreshParetoChart()
     }

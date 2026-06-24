@@ -38,15 +38,22 @@ namespace CwTrainer
             panel3 = new Panel();
             rbDev = new RadioButton();
             rbSpead = new RadioButton();
+            splitContainer1 = new SplitContainer();
+            panel4 = new Panel();
             statusStrip1.SuspendLayout();
             panel1.SuspendLayout();
             panel3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
+            splitContainer1.Panel1.SuspendLayout();
+            splitContainer1.Panel2.SuspendLayout();
+            splitContainer1.SuspendLayout();
+            panel4.SuspendLayout();
             SuspendLayout();
             // 
             // statusStrip1
             // 
             statusStrip1.Items.AddRange(new ToolStripItem[] { statusLabel, CalStatusLabel });
-            statusStrip1.Location = new Point(0, 399);
+            statusStrip1.Location = new Point(0, 404);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Size = new Size(1193, 22);
             statusStrip1.TabIndex = 0;
@@ -68,7 +75,7 @@ namespace CwTrainer
             // 
             portComboBox.FormattingEnabled = true;
             portComboBox.Items.AddRange(new object[] { "COM14" });
-            portComboBox.Location = new Point(16, 15);
+            portComboBox.Location = new Point(4, 3);
             portComboBox.Name = "portComboBox";
             portComboBox.Size = new Size(69, 23);
             portComboBox.TabIndex = 1;
@@ -76,7 +83,7 @@ namespace CwTrainer
             // 
             // ConnectButton
             // 
-            ConnectButton.Location = new Point(12, 44);
+            ConnectButton.Location = new Point(0, 32);
             ConnectButton.Name = "ConnectButton";
             ConnectButton.Size = new Size(75, 23);
             ConnectButton.TabIndex = 2;
@@ -86,7 +93,7 @@ namespace CwTrainer
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(102, 15);
+            textBox1.Location = new Point(90, 3);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
             textBox1.ScrollBars = ScrollBars.Vertical;
@@ -99,14 +106,14 @@ namespace CwTrainer
             timelineView1.AutoScrollMinSize = new Size(0, 42);
             timelineView1.BackColor = Color.FromArgb(24, 24, 28);
             timelineView1.DitLengthMs = 54.545454545454547D;
-            timelineView1.Location = new Point(289, 10);
+            timelineView1.Location = new Point(3, 3);
             timelineView1.Name = "timelineView1";
-            timelineView1.Size = new Size(895, 354);
+            timelineView1.Size = new Size(891, 356);
             timelineView1.TabIndex = 4;
             // 
             // textBox2
             // 
-            textBox2.Location = new Point(51, 367);
+            textBox2.Location = new Point(39, 2);
             textBox2.Name = "textBox2";
             textBox2.Size = new Size(34, 23);
             textBox2.TabIndex = 5;
@@ -117,7 +124,7 @@ namespace CwTrainer
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(9, 370);
+            label1.Location = new Point(3, 5);
             label1.Name = "label1";
             label1.Size = new Size(36, 15);
             label1.TabIndex = 6;
@@ -125,7 +132,7 @@ namespace CwTrainer
             // 
             // calibrateButton
             // 
-            calibrateButton.Location = new Point(102, 370);
+            calibrateButton.Location = new Point(90, 1);
             calibrateButton.Name = "calibrateButton";
             calibrateButton.Size = new Size(75, 23);
             calibrateButton.TabIndex = 7;
@@ -135,15 +142,15 @@ namespace CwTrainer
             // 
             // decodedTextBox
             // 
-            decodedTextBox.Location = new Point(289, 370);
+            decodedTextBox.Location = new Point(3, 365);
             decodedTextBox.Name = "decodedTextBox";
-            decodedTextBox.Size = new Size(892, 23);
+            decodedTextBox.Size = new Size(889, 23);
             decodedTextBox.TabIndex = 8;
             decodedTextBox.WordWrap = false;
             // 
             // buttonClearText
             // 
-            buttonClearText.Location = new Point(201, 369);
+            buttonClearText.Location = new Point(189, 0);
             buttonClearText.Name = "buttonClearText";
             buttonClearText.Size = new Size(75, 23);
             buttonClearText.TabIndex = 9;
@@ -153,9 +160,9 @@ namespace CwTrainer
             // 
             // paretoChartControl1
             // 
-            paretoChartControl1.Location = new Point(12, 73);
+            paretoChartControl1.Location = new Point(3, 61);
             paretoChartControl1.Name = "paretoChartControl1";
-            paretoChartControl1.Size = new Size(264, 253);
+            paretoChartControl1.Size = new Size(261, 261);
             paretoChartControl1.TabIndex = 10;
             paretoChartControl1.Click += paretoChartControl1_Click;
             // 
@@ -164,7 +171,7 @@ namespace CwTrainer
             panel1.Controls.Add(panel2);
             panel1.Controls.Add(rbElements);
             panel1.Controls.Add(rbChar);
-            panel1.Location = new Point(13, 330);
+            panel1.Location = new Point(3, 328);
             panel1.Name = "panel1";
             panel1.Size = new Size(135, 31);
             panel1.TabIndex = 11;
@@ -203,9 +210,9 @@ namespace CwTrainer
             // 
             panel3.Controls.Add(rbDev);
             panel3.Controls.Add(rbSpead);
-            panel3.Location = new Point(151, 330);
+            panel3.Location = new Point(142, 328);
             panel3.Name = "panel3";
-            panel3.Size = new Size(125, 31);
+            panel3.Size = new Size(122, 31);
             panel3.TabIndex = 12;
             // 
             // rbDev
@@ -231,21 +238,45 @@ namespace CwTrainer
             rbSpead.UseVisualStyleBackColor = true;
             rbSpead.CheckedChanged += rbSpead_CheckedChanged;
             // 
+            // splitContainer1
+            // 
+            splitContainer1.Location = new Point(12, 5);
+            splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            splitContainer1.Panel1.Controls.Add(panel4);
+            splitContainer1.Panel1.Controls.Add(paretoChartControl1);
+            splitContainer1.Panel1.Controls.Add(panel3);
+            splitContainer1.Panel1.Controls.Add(panel1);
+            splitContainer1.Panel1.Controls.Add(textBox1);
+            splitContainer1.Panel1.Controls.Add(portComboBox);
+            splitContainer1.Panel1.Controls.Add(ConnectButton);
+            // 
+            // splitContainer1.Panel2
+            // 
+            splitContainer1.Panel2.Controls.Add(decodedTextBox);
+            splitContainer1.Panel2.Controls.Add(timelineView1);
+            splitContainer1.Size = new Size(1169, 394);
+            splitContainer1.SplitterDistance = 271;
+            splitContainer1.TabIndex = 13;
+            splitContainer1.SplitterMoved += splitContainer1_SplitterMoved;
+            // 
+            // panel4
+            // 
+            panel4.Controls.Add(textBox2);
+            panel4.Controls.Add(buttonClearText);
+            panel4.Controls.Add(label1);
+            panel4.Controls.Add(calibrateButton);
+            panel4.Location = new Point(0, 362);
+            panel4.Name = "panel4";
+            panel4.Size = new Size(267, 32);
+            panel4.TabIndex = 14;
+            // 
             // MainForm
             // 
-            ClientSize = new Size(1193, 421);
-            Controls.Add(panel3);
-            Controls.Add(panel1);
-            Controls.Add(paretoChartControl1);
-            Controls.Add(buttonClearText);
-            Controls.Add(decodedTextBox);
-            Controls.Add(calibrateButton);
-            Controls.Add(label1);
-            Controls.Add(textBox2);
-            Controls.Add(timelineView1);
-            Controls.Add(textBox1);
-            Controls.Add(ConnectButton);
-            Controls.Add(portComboBox);
+            ClientSize = new Size(1193, 426);
+            Controls.Add(splitContainer1);
             Controls.Add(statusStrip1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
@@ -258,6 +289,14 @@ namespace CwTrainer
             panel1.PerformLayout();
             panel3.ResumeLayout(false);
             panel3.PerformLayout();
+            splitContainer1.Panel1.ResumeLayout(false);
+            splitContainer1.Panel1.PerformLayout();
+            splitContainer1.Panel2.ResumeLayout(false);
+            splitContainer1.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
+            splitContainer1.ResumeLayout(false);
+            panel4.ResumeLayout(false);
+            panel4.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
 
@@ -287,5 +326,7 @@ namespace CwTrainer
         private Panel panel3;
         private RadioButton rbDev;
         private RadioButton rbSpead;
+        private SplitContainer splitContainer1;
+        private Panel panel4;
     }
 }
