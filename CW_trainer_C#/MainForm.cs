@@ -1,6 +1,7 @@
 #define USE_PARIS_BURST_CALIBRATION         //use the full PARIS burst (marks and spaces) for calibration, instead of just the marks.
-                                            // See WpmCalibrator.cs for details.
+// See WpmCalibrator.cs for details.
 
+using CwTrainer.Display;
 using CwTrainer.Serial;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,11 @@ namespace CwTrainer
         private KeyEvent? _previousEvent;
 
         private readonly ElementHistory _history = new ElementHistory();
+        private readonly SessionStats _stats = new SessionStats();
+
+        private ParetoMetric _currentMetric = ParetoMetric.SpreadFraction;
+        private bool _showingCharacters = true;
+
 
         public MainForm()
         {
@@ -32,6 +38,7 @@ namespace CwTrainer
 
             timelineView1.AttachHistory(_history);
             _history.CharacterCompleted += OnCharacterCompleted;
+            _history.CharacterCompleted += (s, group) => _stats.RecordCompletedCharacter(group, _history.DitLengthMs);
 
             // Constructed here (UI thread) so SynchronizationContext capture
             // inside KeyEventSerialPort is correct.
@@ -129,6 +136,10 @@ namespace CwTrainer
             {
                 decodedTextBox.AppendText(group.DecodedText);
             }
+            if (group.WasWordSpace)
+            {
+                decodedTextBox.AppendText(" ");
+            }
         }
 
 
@@ -223,7 +234,42 @@ namespace CwTrainer
             {
                 _history.Reset();
                 timelineView1.ClearSession();
+                _stats.Reset();
+                RefreshParetoChart();
             }
         }
+
+
+        private void RefreshParetoChart()
+        {
+            string axisTitle = _currentMetric == ParetoMetric.MeanAbsoluteDeviation
+                ? "Mean deviation (%)"
+                : "Spread (%)";
+
+            var entries = _showingCharacters
+                ? ParetoDataBuilder.BuildByCharacter(_stats, _currentMetric)
+                : ParetoDataBuilder.BuildByRole(_stats, _currentMetric);
+
+            paretoChartControl1.SetData(entries, axisTitle);
+        }
+
+        private void rbChar_CheckedChanged(object sender, EventArgs e)
+        {
+            _showingCharacters = rbChar.Checked ? true : false;
+            RefreshParetoChart();
+        }
+
+        private void paretoChartControl1_Click(object sender, EventArgs e)
+        {
+            RefreshParetoChart();
+        }
+
+        private void rbSpead_CheckedChanged(object sender, EventArgs e)
+        {
+            _currentMetric = rbSpead.Checked ? ParetoMetric.SpreadFraction : ParetoMetric.MeanAbsoluteDeviation;
+            RefreshParetoChart();
+        }
+
+        // Wire your four buttons to set _currentMetric/_showingCharacters then call RefreshParetoChart()
     }
 }

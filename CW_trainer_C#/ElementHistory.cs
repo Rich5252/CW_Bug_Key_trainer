@@ -34,6 +34,15 @@ namespace CwTrainer.Serial
         public bool ClosedByTimeout { get; set; }
 
         /// <summary>
+        /// True if the space that closed this character was long enough to
+        /// ALSO count as a word-space (WordSpaceThresholdDits or more),
+        /// meaning a consumer (e.g. building decoded text) should insert a
+        /// space after this character's DecodedText. False means it was
+        /// only a normal inter-character gap.
+        /// </summary>
+        public bool WasWordSpace { get; set; }
+
+        /// <summary>
         /// The decoded text, set by a MorseDecoder (or similar) after this
         /// group completes - null until decode has actually run. Usually a
         /// single character, but may be a multi-character prosign (e.g.
@@ -68,6 +77,9 @@ namespace CwTrainer.Serial
 
         public double CharSpaceThresholdDits { get; set; } = 2.5;
 
+        /// <summary>How many dit-widths of silence counts as a WORD space (vs. just a character space). Standard convention is 7 dit-widths. Tunable since real sending varies.</summary>
+        public double WordSpaceThresholdDits { get; set; } = 5.0;
+
         /// <summary>
         /// The silence TIMEOUT backstop is this many times longer than the
         /// normal real-space threshold. It must be distinctly longer, not
@@ -79,18 +91,19 @@ namespace CwTrainer.Serial
         /// normal sending - the timeout only ever matters when the
         /// operator genuinely stops and no next mark is coming.
         /// </summary>
-        public double TimeoutMultiplier { get; set; } = 2.0; // i.e. timeout = 2x the real-space threshold
+        public double TimeoutMultiplier { get; set; } = 3.5; // i.e. timeout = 2x the real-space threshold
 
         /// <summary>Tolerance fractions for MorseDecoder's mark classification - keep these in sync with TimelineView's GoodToleranceFraction/PoorToleranceFraction so decode and the visual coloring always agree about what's "Bad".</summary>
         public double GoodToleranceFraction { get; set; } = 0.15;
         public double PoorToleranceFraction { get; set; } = 0.35;
 
-        /// <summary>If true, attempt to decode each character via MorseDecoder as it completes, setting CharacterGroup.DecodedChar. Set false to disable decode entirely (e.g. before calibration, when DitLengthMs may not be trustworthy yet).</summary>
+        /// <summary>If true, attempt to decode each character via MorseDecoder as it completes, setting CharacterGroup.DecodedText. Set false to disable decode entirely (e.g. before calibration, when DitLengthMs may not be trustworthy yet).</summary>
         public bool DecodeEnabled { get; set; } = true;
 
         private readonly List<CharacterGroup> _completedCharacters = new List<CharacterGroup>();
         private CharacterGroup _currentCharacter = new CharacterGroup();
         private readonly System.Windows.Forms.Timer _timeoutTimer;
+        private DateTime _lastElementAt = DateTime.MinValue;
 
         /// <summary>All characters completed so far this session, oldest first.</summary>
         public IReadOnlyList<CharacterGroup> CompletedCharacters => _completedCharacters;
@@ -123,19 +136,28 @@ namespace CwTrainer.Serial
             _timeoutTimer = new System.Windows.Forms.Timer();
             _timeoutTimer.Tick += (s, e) =>
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[ElementHistory #{_instanceId}] Tick fired, currentCharacter.Elements={_currentCharacter.Elements.Count}, " +
-                    $"timer.Enabled={_timeoutTimer.Enabled}");
                 _timeoutTimer.Stop();
                 if (_currentCharacter.Elements.Count > 0)
                 {
-                    CloseCurrentCharacter(closedByTimeout: true);
+                    // We now know how long the silence has actually been
+                    // (elapsed time since the last real element, measured
+                    // right now) - synthesize a space Element for it, so
+                    // the timeline has something real to draw for the
+                    // trailing gap (previously timeout-closed rows had no
+                    // visible space at all, unlike real-space closures).
+                    double elapsedMs = (DateTime.Now - _lastElementAt).TotalMilliseconds;
+                    var syntheticSpace = new Element(false, elapsedMs, DateTime.Now);
+                    _currentCharacter.Elements.Add(syntheticSpace);
+
+                    CloseCurrentCharacter(closedByTimeout: true, closingSpaceDurationMs: elapsedMs);
                 }
             };
         }
 
         public void AddElement(Element element)
         {
+            _lastElementAt = DateTime.Now;
+
             double thresholdMs = CharSpaceThresholdDits * DitLengthMs;
             double timeoutMs = thresholdMs * TimeoutMultiplier;
 
@@ -158,7 +180,7 @@ namespace CwTrainer.Serial
             if (!element.IsMark && element.DurationMs >= thresholdMs && _currentCharacter.Elements.Count > 0)
             {
                 _currentCharacter.Elements.Add(element);
-                CloseCurrentCharacter(closedByTimeout: false);
+                CloseCurrentCharacter(closedByTimeout: false, closingSpaceDurationMs: element.DurationMs);
                 return;
             }
 
@@ -179,9 +201,12 @@ namespace CwTrainer.Serial
             _timeoutTimer.Start();
         }
 
-        private void CloseCurrentCharacter(bool closedByTimeout)
+        private void CloseCurrentCharacter(bool closedByTimeout, double closingSpaceDurationMs)
         {
             _currentCharacter.ClosedByTimeout = closedByTimeout;
+
+            double wordThresholdMs = WordSpaceThresholdDits * DitLengthMs;
+            _currentCharacter.WasWordSpace = closingSpaceDurationMs >= wordThresholdMs;
 
             if (DecodeEnabled)
             {

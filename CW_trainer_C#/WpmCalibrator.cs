@@ -59,7 +59,7 @@ namespace CwTrainer.Serial
         {
             // Standard WPM formula (PARIS standard): one dit = 1200/WPM ms.
             double wpm = 1200.0 / ditLengthMs;
-            return new CalibrationResult(true, "", ditLengthMs, wpm, ditsUsed, varianceFraction);
+            return new CalibrationResult(true, null, ditLengthMs, wpm, ditsUsed, varianceFraction);
         }
     }
 
@@ -99,27 +99,34 @@ namespace CwTrainer.Serial
             // Expect the burst to start with a mark (spaces only exist
             // BETWEEN marks within a character - there's never a leading
             // space inside a character group, by construction of
-            // ElementHistory). Take exactly the first 9 elements if
-            // present; a clean "5" produces exactly mark,space,mark,space,
-            // mark,space,mark,space,mark = 9 elements, no more, no less.
-            if (elements.Count != 9)
+            // ElementHistory). A clean "5" produces mark,space,mark,space,
+            // mark,space,mark,space,mark = 9 elements for the burst itself
+            // - but the CharacterGroup may have ONE additional trailing
+            // element (a real inter-character space, or the synthesized
+            // space ElementHistory adds when a character closes via the
+            // silence timeout). Accept 9 or 10 total, but only ever use
+            // the first 9 for the actual calibration math - the 10th, if
+            // present, is the closing space and isn't part of the burst.
+            if (elements.Count < 9)
             {
                 return CalibrationResult.Fail(
-                    $"Expected exactly 9 elements (5 marks + 4 spaces, e.g. sending \"5\"), " +
+                    $"Expected at least 9 elements (5 marks + 4 spaces, e.g. sending \"5\"), " +
                     $"got {elements.Count}. Send a clean five-dit character and try again.");
             }
+
+            var burstElements = elements.Take(9).ToList();
 
             for (int i = 0; i < 9; i++)
             {
                 bool expectedIsMark = (i % 2 == 0); // positions 0,2,4,6,8 = marks; 1,3,5,7 = spaces
-                if (elements[i].IsMark != expectedIsMark)
+                if (burstElements[i].IsMark != expectedIsMark)
                 {
                     return CalibrationResult.Fail(
                         "Element sequence doesn't match the expected mark/space/mark/... pattern for a clean 5-dit burst.");
                 }
             }
 
-            var durations = elements.Select(e => e.DurationMs).ToList();
+            var durations = burstElements.Select(e => e.DurationMs).ToList();
             double average = durations.Average();
             double min = durations.Min();
             double max = durations.Max();

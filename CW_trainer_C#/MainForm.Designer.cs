@@ -30,7 +30,17 @@ namespace CwTrainer
             calibrateButton = new Button();
             decodedTextBox = new TextBox();
             buttonClearText = new Button();
+            paretoChartControl1 = new CwTrainer.Display.ParetoChartControl();
+            panel1 = new Panel();
+            panel2 = new Panel();
+            rbElements = new RadioButton();
+            rbChar = new RadioButton();
+            panel3 = new Panel();
+            rbDev = new RadioButton();
+            rbSpead = new RadioButton();
             statusStrip1.SuspendLayout();
+            panel1.SuspendLayout();
+            panel3.SuspendLayout();
             SuspendLayout();
             // 
             // statusStrip1
@@ -58,7 +68,7 @@ namespace CwTrainer
             // 
             portComboBox.FormattingEnabled = true;
             portComboBox.Items.AddRange(new object[] { "COM14" });
-            portComboBox.Location = new Point(23, 15);
+            portComboBox.Location = new Point(16, 15);
             portComboBox.Name = "portComboBox";
             portComboBox.Size = new Size(69, 23);
             portComboBox.TabIndex = 1;
@@ -66,7 +76,7 @@ namespace CwTrainer
             // 
             // ConnectButton
             // 
-            ConnectButton.Location = new Point(19, 44);
+            ConnectButton.Location = new Point(12, 44);
             ConnectButton.Name = "ConnectButton";
             ConnectButton.Size = new Size(75, 23);
             ConnectButton.TabIndex = 2;
@@ -76,11 +86,11 @@ namespace CwTrainer
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(12, 83);
+            textBox1.Location = new Point(102, 15);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
             textBox1.ScrollBars = ScrollBars.Vertical;
-            textBox1.Size = new Size(109, 210);
+            textBox1.Size = new Size(174, 52);
             textBox1.TabIndex = 3;
             // 
             // timelineView1
@@ -89,14 +99,14 @@ namespace CwTrainer
             timelineView1.AutoScrollMinSize = new Size(0, 42);
             timelineView1.BackColor = Color.FromArgb(24, 24, 28);
             timelineView1.DitLengthMs = 54.545454545454547D;
-            timelineView1.Location = new Point(130, 10);
+            timelineView1.Location = new Point(289, 10);
             timelineView1.Name = "timelineView1";
-            timelineView1.Size = new Size(1054, 354);
+            timelineView1.Size = new Size(895, 354);
             timelineView1.TabIndex = 4;
             // 
             // textBox2
             // 
-            textBox2.Location = new Point(58, 309);
+            textBox2.Location = new Point(51, 367);
             textBox2.Name = "textBox2";
             textBox2.Size = new Size(34, 23);
             textBox2.TabIndex = 5;
@@ -107,7 +117,7 @@ namespace CwTrainer
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(16, 312);
+            label1.Location = new Point(9, 370);
             label1.Name = "label1";
             label1.Size = new Size(36, 15);
             label1.TabIndex = 6;
@@ -115,7 +125,7 @@ namespace CwTrainer
             // 
             // calibrateButton
             // 
-            calibrateButton.Location = new Point(19, 338);
+            calibrateButton.Location = new Point(102, 370);
             calibrateButton.Name = "calibrateButton";
             calibrateButton.Size = new Size(75, 23);
             calibrateButton.TabIndex = 7;
@@ -125,15 +135,15 @@ namespace CwTrainer
             // 
             // decodedTextBox
             // 
-            decodedTextBox.Location = new Point(131, 370);
+            decodedTextBox.Location = new Point(289, 370);
             decodedTextBox.Name = "decodedTextBox";
-            decodedTextBox.Size = new Size(1050, 23);
+            decodedTextBox.Size = new Size(892, 23);
             decodedTextBox.TabIndex = 8;
             decodedTextBox.WordWrap = false;
             // 
             // buttonClearText
             // 
-            buttonClearText.Location = new Point(19, 369);
+            buttonClearText.Location = new Point(201, 369);
             buttonClearText.Name = "buttonClearText";
             buttonClearText.Size = new Size(75, 23);
             buttonClearText.TabIndex = 9;
@@ -141,9 +151,92 @@ namespace CwTrainer
             buttonClearText.UseVisualStyleBackColor = true;
             buttonClearText.MouseUp += clearButton_MouseUp;
             // 
+            // paretoChartControl1
+            // 
+            paretoChartControl1.Location = new Point(12, 73);
+            paretoChartControl1.Name = "paretoChartControl1";
+            paretoChartControl1.Size = new Size(264, 253);
+            paretoChartControl1.TabIndex = 10;
+            paretoChartControl1.Click += paretoChartControl1_Click;
+            // 
+            // panel1
+            // 
+            panel1.Controls.Add(panel2);
+            panel1.Controls.Add(rbElements);
+            panel1.Controls.Add(rbChar);
+            panel1.Location = new Point(13, 330);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(135, 31);
+            panel1.TabIndex = 11;
+            // 
+            // panel2
+            // 
+            panel2.Location = new Point(138, 0);
+            panel2.Name = "panel2";
+            panel2.Size = new Size(125, 31);
+            panel2.TabIndex = 12;
+            // 
+            // rbElements
+            // 
+            rbElements.AutoSize = true;
+            rbElements.Location = new Point(59, 3);
+            rbElements.Name = "rbElements";
+            rbElements.Size = new Size(73, 19);
+            rbElements.TabIndex = 1;
+            rbElements.Text = "Elements";
+            rbElements.UseVisualStyleBackColor = true;
+            // 
+            // rbChar
+            // 
+            rbChar.AutoSize = true;
+            rbChar.Checked = true;
+            rbChar.Location = new Point(3, 3);
+            rbChar.Name = "rbChar";
+            rbChar.Size = new Size(55, 19);
+            rbChar.TabIndex = 0;
+            rbChar.TabStop = true;
+            rbChar.Text = "Chars";
+            rbChar.UseVisualStyleBackColor = true;
+            rbChar.CheckedChanged += rbChar_CheckedChanged;
+            // 
+            // panel3
+            // 
+            panel3.Controls.Add(rbDev);
+            panel3.Controls.Add(rbSpead);
+            panel3.Location = new Point(151, 330);
+            panel3.Name = "panel3";
+            panel3.Size = new Size(125, 31);
+            panel3.TabIndex = 12;
+            // 
+            // rbDev
+            // 
+            rbDev.AutoSize = true;
+            rbDev.Location = new Point(50, 3);
+            rbDev.Name = "rbDev";
+            rbDev.Size = new Size(45, 19);
+            rbDev.TabIndex = 1;
+            rbDev.Text = "Dev";
+            rbDev.UseVisualStyleBackColor = true;
+            // 
+            // rbSpead
+            // 
+            rbSpead.AutoSize = true;
+            rbSpead.Checked = true;
+            rbSpead.Location = new Point(3, 3);
+            rbSpead.Name = "rbSpead";
+            rbSpead.Size = new Size(35, 19);
+            rbSpead.TabIndex = 0;
+            rbSpead.TabStop = true;
+            rbSpead.Text = "%";
+            rbSpead.UseVisualStyleBackColor = true;
+            rbSpead.CheckedChanged += rbSpead_CheckedChanged;
+            // 
             // MainForm
             // 
             ClientSize = new Size(1193, 421);
+            Controls.Add(panel3);
+            Controls.Add(panel1);
+            Controls.Add(paretoChartControl1);
             Controls.Add(buttonClearText);
             Controls.Add(decodedTextBox);
             Controls.Add(calibrateButton);
@@ -161,6 +254,10 @@ namespace CwTrainer
             Resize += MainForm_Resize;
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
+            panel3.ResumeLayout(false);
+            panel3.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
 
@@ -182,5 +279,13 @@ namespace CwTrainer
         private ToolStripStatusLabel CalStatusLabel;
         private TextBox decodedTextBox;
         private Button buttonClearText;
+        private Display.ParetoChartControl paretoChartControl1;
+        private Panel panel1;
+        private RadioButton rbElements;
+        private RadioButton rbChar;
+        private Panel panel2;
+        private Panel panel3;
+        private RadioButton rbDev;
+        private RadioButton rbSpead;
     }
 }
