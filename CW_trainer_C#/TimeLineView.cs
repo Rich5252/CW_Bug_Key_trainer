@@ -170,11 +170,12 @@ namespace CwTrainer.Display
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             // TEMP DIAGNOSTIC
-            System.Diagnostics.Debug.WriteLine(
+/*
+             * System.Diagnostics.Debug.WriteLine(
                 $"[OnPaint] liveRow.Elements={_liveRow.Elements.Count}, " +
                 $"completedRows={_completedRows.Count}, " +
                 $"lastCompletedDecodedChar={(_completedRows.Count > 0 ? _completedRows[_completedRows.Count - 1].DecodedText?.ToString() ?? "null" : "n/a")}");
-
+*/
             // Live row is pinned to a fixed Y position near the bottom of
             // the visible client area when NOT scrolled back (_scrollOffsetRows
             // == 0). Scrolling shifts the whole stack up by N row-heights via

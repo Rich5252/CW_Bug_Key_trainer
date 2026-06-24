@@ -244,12 +244,12 @@ namespace CwTrainer
             decodedTextBox.Width = splitContainer1.Panel2.Width - 5;
 
             //move panel1 and panel3 radio buttons to above the panel4 buttons
-            panel1.Top = splitContainer1.Panel2.Height - panel1.Height - panel3.Height;
+            panel1.Top = splitContainer1.Height - panel1.Height - panel4.Height;
             panel3.Top = panel1.Top;
 
             //chart control expanded into the left panel of the split container, so keep it sized to fill that panel
             paretoChartControl1.Width = splitContainer1.Panel1.Width - 5;
-            paretoChartControl1.Height = panel1.Top - paretoChartControl1.Top - 10;
+            paretoChartControl1.Height = panel1.Top - paretoChartControl1.Top - 5;
 
             panel4.Width = splitContainer1.Panel1.Width;
             buttonClearText.Left = splitContainer1.Panel1.Width - buttonClearText.Width - 5;
@@ -311,8 +311,6 @@ namespace CwTrainer
             _currentMetric = rbSpead.Checked ? ParetoMetric.SpreadFraction : ParetoMetric.MeanAbsoluteDeviation;
             RefreshParetoChart();
         }
-
-
 
 
         // Wire your four buttons to set _currentMetric/_showingCharacters then call RefreshParetoChart()
