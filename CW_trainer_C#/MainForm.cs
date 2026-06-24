@@ -137,6 +137,7 @@ namespace CwTrainer
                 if (group.DecodedText == "HH")
                 {
                     ClearAllHistory();
+                    decodedTextBox.Text = "";
                     return;
                 }
                 decodedTextBox.AppendText(group.DecodedText);
