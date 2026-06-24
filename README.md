@@ -12,10 +12,15 @@ The mechanical bug is new to me so still learning.
 
 Currently this app is driven from a USB COM port from my bug-key sidetone module.
 This sends key up/down timestamps in microseconds - eg
+
 DOWN,27668120250
+
 UP,27668172250
+
 DOWN,27668226750
+
 UP,27668283250
+
 DOWN,27668339250
 
 I will add audio input later so let me know if this would be useful to you.
