@@ -100,6 +100,7 @@ namespace CwTrainer.Serial
             ["-.-.-"] = "KA",
             ["-.--."] = "KN",
             ["...---..."] = "SOS",
+            ["........"] = "HH", // 8 dits, used as error
         };
 
         /// <summary>Text returned when decode is attempted but the pattern doesn't match any known entry, or any mark is too poorly timed to trust (MarkQuality.Bad).</summary>

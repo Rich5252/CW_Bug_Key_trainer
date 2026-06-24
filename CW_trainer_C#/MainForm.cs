@@ -134,6 +134,11 @@ namespace CwTrainer
         {
             if (!string.IsNullOrEmpty(group.DecodedText))
             {
+                if (group.DecodedText == "HH")
+                {
+                    ClearAllHistory();
+                    return;
+                }
                 decodedTextBox.AppendText(group.DecodedText);
             }
             if (group.WasWordSpace)
@@ -274,11 +279,16 @@ namespace CwTrainer
             }
             else if (e.Button == MouseButtons.Right)
             {
-                _history.Reset();
-                timelineView1.ClearSession();
-                _stats.Reset();
-                RefreshParetoChart();
+                ClearAllHistory();
             }
+        }
+
+        private void ClearAllHistory()
+        {
+            _history.Reset();
+            timelineView1.ClearSession();
+            _stats.Reset();
+            RefreshParetoChart();
         }
 
 
