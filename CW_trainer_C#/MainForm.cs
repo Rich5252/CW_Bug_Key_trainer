@@ -37,8 +37,8 @@ namespace CwTrainer
             InitializeComponent();
 
             timelineView1.AttachHistory(_history);
-            _history.CharacterCompleted += OnCharacterCompleted;
             _history.CharacterCompleted += (s, group) => _stats.RecordCompletedCharacter(group, _history.DitLengthMs);
+            _history.CharacterCompleted += OnCharacterCompleted;
 
             // Constructed here (UI thread) so SynchronizationContext capture
             // inside KeyEventSerialPort is correct.
