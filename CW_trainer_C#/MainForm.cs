@@ -217,6 +217,16 @@ namespace CwTrainer
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
+            ResizeMainForm();
+        }
+
+        private void MainForm_Shown(object sender, EventArgs e)
+        {
+            ResizeMainForm();
+        }
+
+        private void ResizeMainForm()
+        {
             freezeSpliter = true;
 
             splitContainer1.Height = this.ClientSize.Height - statusStrip1.Height - 10;
@@ -325,12 +335,10 @@ namespace CwTrainer
 
         private void copyCsvButton_Click(object sender, EventArgs e)
         {
+            //Copy stats to CSV on clipboard
             string csv = SessionStatsCsvExporter.BuildCsv(_stats);
             Clipboard.SetText(csv);
             statusLabel.Text = "Stats copied to clipboard";
         }
-
-
-        // Wire your four buttons to set _currentMetric/_showingCharacters then call RefreshParetoChart()
     }
 }

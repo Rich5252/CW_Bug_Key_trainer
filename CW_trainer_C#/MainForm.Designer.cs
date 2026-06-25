@@ -298,6 +298,7 @@ namespace CwTrainer
             Name = "MainForm";
             Text = "CW Bug Key Trainer";
             Load += MainForm_Load;
+            Shown += MainForm_Shown;
             Resize += MainForm_Resize;
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();

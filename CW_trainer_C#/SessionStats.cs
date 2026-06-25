@@ -26,6 +26,17 @@ namespace CwTrainer.Serial
         public StatBucket InterCharacterSpaces { get; } = new StatBucket();
         public StatBucket WordSpaces { get; } = new StatBucket();
 
+        /// <summary>
+        /// How many times THIS character was completed/sent (e.g. how
+        /// many times "E" itself was sent) - distinct from any single
+        /// StatBucket's Count, which is an ELEMENT-level sample count
+        /// (e.g. summed dit/space samples across all those E's). Only
+        /// meaningful/incremented on a PerCharacter breakdown; the Global
+        /// breakdown doesn't use this (TotalCharactersCompleted on
+        /// SessionStats covers that already).
+        /// </summary>
+        public int CharacterCount { get; set; }
+
         public StatBucket For(ElementRole role) => role switch
         {
             ElementRole.Dit => Dits,
@@ -43,6 +54,7 @@ namespace CwTrainer.Serial
             IntraCharacterSpaces.Clear();
             InterCharacterSpaces.Clear();
             WordSpaces.Clear();
+            CharacterCount = 0;
         }
     }
 
@@ -67,6 +79,9 @@ namespace CwTrainer.Serial
         /// <summary>Stats broken down by which character was decoded - e.g. PerCharacter['K'] for just K's. Undecoded ('~') characters are still included, keyed under '~', since their timing data is still real and useful even though the letter itself is unknown.</summary>
         public Dictionary<string, RoleBreakdown> PerCharacter { get; } = new Dictionary<string, RoleBreakdown>();
 
+        /// <summary>Total number of characters sent this session (every RecordCompletedCharacter call counts once, regardless of which letter or whether decode succeeded). Distinct from PerCharacter.Count, which is how many UNIQUE characters/letters have appeared.</summary>
+        public int TotalCharactersCompleted { get; private set; }
+
         /// <summary>
         /// Feed one completed CharacterGroup into the stats. Call this from
         /// ElementHistory.CharacterCompleted, alongside your other
@@ -80,12 +95,16 @@ namespace CwTrainer.Serial
         {
             if (group == null || ditLengthMs <= 0) return;
 
+            TotalCharactersCompleted++;
+
             string key = string.IsNullOrEmpty(group.DecodedText) ? "~" : group.DecodedText;
             if (!PerCharacter.TryGetValue(key, out RoleBreakdown perChar))
             {
                 perChar = new RoleBreakdown();
                 PerCharacter[key] = perChar;
             }
+
+            perChar.CharacterCount++;
 
             var elements = group.Elements;
             for (int i = 0; i < elements.Count; i++)
@@ -143,6 +162,7 @@ namespace CwTrainer.Serial
         {
             Global.Clear();
             PerCharacter.Clear();
+            TotalCharactersCompleted = 0;
         }
     }
 }

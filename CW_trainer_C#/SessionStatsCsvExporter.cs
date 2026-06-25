@@ -20,12 +20,14 @@ namespace CwTrainer.Serial
             var sb = new StringBuilder();
 
             sb.AppendLine($"Exported,{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"Total characters sent,{stats.TotalCharactersCompleted}");
+            sb.AppendLine($"Distinct characters,{stats.PerCharacter.Count}");
             sb.AppendLine();
 
             sb.AppendLine("Characters");
-            sb.AppendLine("Character,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%");
+            sb.AppendLine("Character,NChars,NElements,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%");
 
-            var charRows = new List<(string Key, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
+            var charRows = new List<(string Key, int NChars, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
 
             foreach (var charKey in stats.PerCharacter.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
@@ -45,15 +47,17 @@ namespace CwTrainer.Serial
                 double stdDev = applicableBuckets.Average(b => b.StdDeviation) * 100.0;
                 double spread = applicableBuckets.Average(b => b.SpreadFraction) * 100.0;
 
-                charRows.Add((charKey, totalCount, meanAbsDev, meanSignedDev, stdDev, spread));
+                charRows.Add((charKey, breakdown.CharacterCount, totalCount, meanAbsDev, meanSignedDev, stdDev, spread));
 
                 sb.AppendLine(string.Join(",",
                     CsvField(charKey),
+                    breakdown.CharacterCount.ToString(CultureInfo.InvariantCulture),
                     totalCount.ToString(CultureInfo.InvariantCulture),
                     Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread)));
             }
 
-            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread)).ToList());
+            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread)).ToList(),
+                extraLeadingColumn: charRows.Sum(r => r.NChars).ToString(CultureInfo.InvariantCulture));
 
             sb.AppendLine();
             sb.AppendLine("Elements");
@@ -107,18 +111,21 @@ namespace CwTrainer.Serial
         /// vs. this row's purpose of representing the whole block).
         /// </summary>
         private static void AppendWeightedSummaryRow(StringBuilder sb,
-            List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)> rows)
+            List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)> rows,
+            string extraLeadingColumn = null)
         {
+            string countsPrefix = extraLeadingColumn != null ? extraLeadingColumn + "," : "";
+
             if (rows.Count == 0)
             {
-                sb.AppendLine("TOTAL,0,,,,");
+                sb.AppendLine($"TOTAL,{countsPrefix}0,,,,");
                 return;
             }
 
             int totalCount = rows.Sum(r => r.Count);
             if (totalCount == 0)
             {
-                sb.AppendLine("TOTAL,0,,,,");
+                sb.AppendLine($"TOTAL,{countsPrefix}0,,,,");
                 return;
             }
 
@@ -127,10 +134,15 @@ namespace CwTrainer.Serial
             double weightedStdDev = rows.Sum(r => r.StdDev * r.Count) / totalCount;
             double weightedSpread = rows.Sum(r => r.Spread * r.Count) / totalCount;
 
-            sb.AppendLine(string.Join(",",
-                "TOTAL (count-weighted avg)",
-                totalCount.ToString(CultureInfo.InvariantCulture),
-                Round(weightedMeanAbsDev), Round(weightedMeanSignedDev), Round(weightedStdDev), Round(weightedSpread)));
+            var fields = new List<string> { "TOTAL (count-weighted avg)" };
+            if (extraLeadingColumn != null) fields.Add(extraLeadingColumn);
+            fields.Add(totalCount.ToString(CultureInfo.InvariantCulture));
+            fields.Add(Round(weightedMeanAbsDev));
+            fields.Add(Round(weightedMeanSignedDev));
+            fields.Add(Round(weightedStdDev));
+            fields.Add(Round(weightedSpread));
+
+            sb.AppendLine(string.Join(",", fields));
         }
 
         private static string Round(double value) =>
