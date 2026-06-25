@@ -36,10 +36,12 @@ namespace CwTrainer
             rbElements = new RadioButton();
             rbChar = new RadioButton();
             panel3 = new Panel();
+            copyCsvButton = new Button();
             rbDev = new RadioButton();
             rbSpead = new RadioButton();
             splitContainer1 = new SplitContainer();
             panel4 = new Panel();
+            toolTip1 = new ToolTip(components);
             statusStrip1.SuspendLayout();
             panel1.SuspendLayout();
             panel3.SuspendLayout();
@@ -155,6 +157,7 @@ namespace CwTrainer
             buttonClearText.Size = new Size(75, 23);
             buttonClearText.TabIndex = 9;
             buttonClearText.Text = "Clear text";
+            toolTip1.SetToolTip(buttonClearText, "Left click - clear text. Right click - clear view");
             buttonClearText.UseVisualStyleBackColor = true;
             buttonClearText.MouseUp += clearButton_MouseUp;
             // 
@@ -164,6 +167,7 @@ namespace CwTrainer
             paretoChartControl1.Name = "paretoChartControl1";
             paretoChartControl1.Size = new Size(261, 261);
             paretoChartControl1.TabIndex = 10;
+            toolTip1.SetToolTip(paretoChartControl1, "Right click to update");
             paretoChartControl1.Click += paretoChartControl1_Click;
             // 
             // panel1
@@ -208,6 +212,7 @@ namespace CwTrainer
             // 
             // panel3
             // 
+            panel3.Controls.Add(copyCsvButton);
             panel3.Controls.Add(rbDev);
             panel3.Controls.Add(rbSpead);
             panel3.Location = new Point(142, 328);
@@ -215,10 +220,21 @@ namespace CwTrainer
             panel3.Size = new Size(122, 31);
             panel3.TabIndex = 12;
             // 
+            // copyCsvButton
+            // 
+            copyCsvButton.Location = new Point(91, 1);
+            copyCsvButton.Name = "copyCsvButton";
+            copyCsvButton.Size = new Size(28, 23);
+            copyCsvButton.TabIndex = 2;
+            copyCsvButton.Text = "X";
+            toolTip1.SetToolTip(copyCsvButton, "CSV to Clipboard");
+            copyCsvButton.UseVisualStyleBackColor = true;
+            copyCsvButton.Click += copyCsvButton_Click;
+            // 
             // rbDev
             // 
-            rbDev.AutoSize = true;
-            rbDev.Location = new Point(50, 3);
+            rbDev.Location = new Point(44, 3);
+            rbDev.Margin = new Padding(3, 3, 0, 3);
             rbDev.Name = "rbDev";
             rbDev.Size = new Size(45, 19);
             rbDev.TabIndex = 1;
@@ -328,5 +344,7 @@ namespace CwTrainer
         private RadioButton rbSpead;
         private SplitContainer splitContainer1;
         private Panel panel4;
+        private Button copyCsvButton;
+        private ToolTip toolTip1;
     }
 }

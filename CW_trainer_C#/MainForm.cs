@@ -323,6 +323,13 @@ namespace CwTrainer
             RefreshParetoChart();
         }
 
+        private void copyCsvButton_Click(object sender, EventArgs e)
+        {
+            string csv = SessionStatsCsvExporter.BuildCsv(_stats);
+            Clipboard.SetText(csv);
+            statusLabel.Text = "Stats copied to clipboard";
+        }
+
 
         // Wire your four buttons to set _currentMetric/_showingCharacters then call RefreshParetoChart()
     }
