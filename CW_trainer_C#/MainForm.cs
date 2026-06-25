@@ -151,15 +151,16 @@ namespace CwTrainer
             }
         }
 
-
-
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _ini.WriteInt("Window", "Width", this.Width);
-            _ini.WriteInt("Window", "Height", this.Height);
-            _ini.WriteInt("Window", "Left", this.Left);
-            _ini.WriteInt("Window", "Top", this.Top);
-            _ini.WriteInt("Window", "SplitterDistance", splitContainer1.SplitterDistance);
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                _ini.WriteInt("Window", "Width", this.Width);
+                _ini.WriteInt("Window", "Height", this.Height);
+                _ini.WriteInt("Window", "Left", this.Left);
+                _ini.WriteInt("Window", "Top", this.Top);
+                _ini.WriteInt("Window", "SplitterDistance", splitContainer1.SplitterDistance);
+            }
 
             _ini.WriteString("Settings", "WPM", textBox2.Text);
 
