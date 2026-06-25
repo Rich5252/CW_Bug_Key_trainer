@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -18,8 +19,13 @@ namespace CwTrainer.Serial
         {
             var sb = new StringBuilder();
 
+            sb.AppendLine($"Exported,{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine();
+
             sb.AppendLine("Characters");
             sb.AppendLine("Character,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%");
+
+            var charRows = new List<(string Key, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
 
             foreach (var charKey in stats.PerCharacter.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
@@ -39,11 +45,15 @@ namespace CwTrainer.Serial
                 double stdDev = applicableBuckets.Average(b => b.StdDeviation) * 100.0;
                 double spread = applicableBuckets.Average(b => b.SpreadFraction) * 100.0;
 
+                charRows.Add((charKey, totalCount, meanAbsDev, meanSignedDev, stdDev, spread));
+
                 sb.AppendLine(string.Join(",",
                     CsvField(charKey),
                     totalCount.ToString(CultureInfo.InvariantCulture),
                     Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread)));
             }
+
+            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread)).ToList());
 
             sb.AppendLine();
             sb.AppendLine("Elements");
@@ -58,21 +68,69 @@ namespace CwTrainer.Serial
                 (ElementRole.WordSpace, "Word space"),
             };
 
+            var roleRows = new List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
+
             foreach (var (role, label) in roleLabels.OrderBy(r => r.Label, StringComparer.Ordinal))
             {
                 StatBucket bucket = stats.Global.For(role);
                 if (bucket.Count == 0) continue;
 
+                double meanAbsDev = bucket.MeanAbsoluteDeviation * 100.0;
+                double meanSignedDev = bucket.MeanSignedDeviation * 100.0;
+                double stdDev = bucket.StdDeviation * 100.0;
+                double spread = bucket.SpreadFraction * 100.0;
+
+                roleRows.Add((bucket.Count, meanAbsDev, meanSignedDev, stdDev, spread));
+
                 sb.AppendLine(string.Join(",",
                     CsvField(label),
                     bucket.Count.ToString(CultureInfo.InvariantCulture),
-                    Round(bucket.MeanAbsoluteDeviation * 100.0),
-                    Round(bucket.MeanSignedDeviation * 100.0),
-                    Round(bucket.StdDeviation * 100.0),
-                    Round(bucket.SpreadFraction * 100.0)));
+                    Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread)));
             }
 
+            AppendWeightedSummaryRow(sb, roleRows);
+
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Appends one summary row: Count is a plain SUM (total samples in
+        /// this block); the deviation/spread columns are sample-count-WEIGHTED
+        /// averages, not plain averages of the per-row averages - this
+        /// matters because each row already averages across however many
+        /// samples it has, so a character sent 40 times and one sent twice
+        /// would otherwise count equally toward an overall figure, which
+        /// would misrepresent how the session actually went. Weighting by
+        /// Count keeps frequently-sent items appropriately dominant in the
+        /// OVERALL figure, even though the per-row Pareto sort deliberately
+        /// ignores frequency (a different, intentional choice for triage
+        /// vs. this row's purpose of representing the whole block).
+        /// </summary>
+        private static void AppendWeightedSummaryRow(StringBuilder sb,
+            List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)> rows)
+        {
+            if (rows.Count == 0)
+            {
+                sb.AppendLine("TOTAL,0,,,,");
+                return;
+            }
+
+            int totalCount = rows.Sum(r => r.Count);
+            if (totalCount == 0)
+            {
+                sb.AppendLine("TOTAL,0,,,,");
+                return;
+            }
+
+            double weightedMeanAbsDev = rows.Sum(r => r.MeanAbsDev * r.Count) / totalCount;
+            double weightedMeanSignedDev = rows.Sum(r => r.MeanSignedDev * r.Count) / totalCount;
+            double weightedStdDev = rows.Sum(r => r.StdDev * r.Count) / totalCount;
+            double weightedSpread = rows.Sum(r => r.Spread * r.Count) / totalCount;
+
+            sb.AppendLine(string.Join(",",
+                "TOTAL (count-weighted avg)",
+                totalCount.ToString(CultureInfo.InvariantCulture),
+                Round(weightedMeanAbsDev), Round(weightedMeanSignedDev), Round(weightedStdDev), Round(weightedSpread)));
         }
 
         private static string Round(double value) =>
