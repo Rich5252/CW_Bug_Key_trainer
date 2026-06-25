@@ -3,6 +3,7 @@
 
 using CwTrainer.Display;
 using CwTrainer.Serial;
+using CwTrainer.Settings;
 using System;
 using System.Collections.Generic;
 using System.Security.Policy;
@@ -30,6 +31,8 @@ namespace CwTrainer
 
         private ParetoMetric _currentMetric = ParetoMetric.SpreadFraction;
         private bool _showingCharacters = true;
+
+        private readonly IniFile _ini = new IniFile("CwTrainer.ini");
 
 
         public MainForm()
@@ -152,6 +155,14 @@ namespace CwTrainer
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            _ini.WriteInt("Window", "Width", this.Width);
+            _ini.WriteInt("Window", "Height", this.Height);
+            _ini.WriteInt("Window", "Left", this.Left);
+            _ini.WriteInt("Window", "Top", this.Top);
+            _ini.WriteInt("Window", "SplitterDistance", splitContainer1.SplitterDistance);
+
+            _ini.WriteString("Settings", "WPM", textBox2.Text);
+
             _serial?.Dispose();
             _history?.Dispose();
             base.OnFormClosing(e);
@@ -274,6 +285,18 @@ namespace CwTrainer
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            if (_ini.Exists)
+            {
+                this.StartPosition = FormStartPosition.Manual;
+                this.Width = _ini.ReadInt("Window", "Width", this.Width);
+                this.Height = _ini.ReadInt("Window", "Height", this.Height);
+                this.Left = _ini.ReadInt("Window", "Left", this.Left);
+                this.Top = _ini.ReadInt("Window", "Top", this.Top);
+                splitContainer1.SplitterDistance = _ini.ReadInt("Window", "SplitterDistance", splitContainer1.SplitterDistance);
+
+                textBox2.Text = _ini.ReadString("Settings", "WPM", textBox2.Text);
+            }
+
             ConnectPort();
         }
 
