@@ -112,6 +112,7 @@ namespace CwTrainer.Display
         /// </summary>
         public void AttachHistory(ElementHistory history, TrainerSettings settings)
         {
+            _settings = settings;
             if (_history != null)
             {
                 _history.CharacterCompleted -= OnCharacterCompleted;
