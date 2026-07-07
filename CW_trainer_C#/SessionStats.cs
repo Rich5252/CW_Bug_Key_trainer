@@ -91,7 +91,7 @@ namespace CwTrainer.Serial
         /// stats instances (e.g. one for the whole session, one reset per
         /// drill) if useful later.
         /// </summary>
-        public void RecordCompletedCharacter(CharacterGroup group, double ditLengthMs)
+        public void RecordCompletedCharacter(CharacterGroup group, double ditLengthMs, TrainerSettings settings)
         {
             if (group == null || ditLengthMs <= 0) return;
 
@@ -113,7 +113,7 @@ namespace CwTrainer.Serial
                 bool isLastElement = (i == elements.Count - 1);
 
                 ElementRole role = ClassifyRole(element, isLastElement, group, ditLengthMs);
-                double idealMs = IdealMsFor(role, ditLengthMs);
+                double idealMs = IdealMsFor(role, ditLengthMs, settings);
 
                 Global.For(role).AddSample(element.DurationMs, idealMs);
                 perChar.For(role).AddSample(element.DurationMs, idealMs);
@@ -148,13 +148,13 @@ namespace CwTrainer.Serial
             return ElementRole.IntraCharacterSpace;
         }
 
-        private static double IdealMsFor(ElementRole role, double ditLengthMs) => role switch
+        private static double IdealMsFor(ElementRole role, double ditLengthMs, TrainerSettings settings) => role switch
         {
             ElementRole.Dit => ditLengthMs * 1.0,
             ElementRole.Dah => ditLengthMs * 3.0,
-            ElementRole.IntraCharacterSpace => ditLengthMs * 1.0,
-            ElementRole.InterCharacterSpace => ditLengthMs * 3.0,
-            ElementRole.WordSpace => ditLengthMs * 7.0,
+            ElementRole.IntraCharacterSpace => ditLengthMs * settings.IntraCharSpaceIdealDits,
+            ElementRole.InterCharacterSpace => ditLengthMs * settings.InterCharSpaceIdealDits,
+            ElementRole.WordSpace => ditLengthMs * settings.WordSpaceIdealDits,
             _ => ditLengthMs,
         };
 

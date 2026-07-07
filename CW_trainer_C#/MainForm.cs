@@ -28,6 +28,7 @@ namespace CwTrainer
 
         private readonly ElementHistory _history = new ElementHistory();
         private readonly SessionStats _stats = new SessionStats();
+        private readonly TrainerSettings _settings = new TrainerSettings();
 
         private ParetoMetric _currentMetric = ParetoMetric.SpreadFraction;
         private bool _showingCharacters = true;
@@ -39,8 +40,9 @@ namespace CwTrainer
         {
             InitializeComponent();
 
-            timelineView1.AttachHistory(_history);
-            _history.CharacterCompleted += (s, group) => _stats.RecordCompletedCharacter(group, _history.DitLengthMs);
+            timelineView1.AttachHistory(_history, _settings);
+            _history.Settings = _settings;
+            _history.CharacterCompleted += (s, group) => _stats.RecordCompletedCharacter(group, _history.DitLengthMs, _settings);
             _history.CharacterCompleted += OnCharacterCompleted;
 
             // Constructed here (UI thread) so SynchronizationContext capture
@@ -164,6 +166,21 @@ namespace CwTrainer
 
             _ini.WriteString("Settings", "WPM", textBox2.Text);
 
+            // Mark classification windows
+            _ini.WriteDouble("MarkWindows", "DitMinGood", _settings.DitMinGood);
+            _ini.WriteDouble("MarkWindows", "DitMaxGood", _settings.DitMaxGood);
+            _ini.WriteDouble("MarkWindows", "DitMinWarn", _settings.DitMinWarn);
+            _ini.WriteDouble("MarkWindows", "DitMaxWarn", _settings.DitMaxWarn);
+            _ini.WriteDouble("MarkWindows", "DahMinGood", _settings.DahMinGood);
+            _ini.WriteDouble("MarkWindows", "DahMaxGood", _settings.DahMaxGood);
+            _ini.WriteDouble("MarkWindows", "DahMinWarn", _settings.DahMinWarn);
+            _ini.WriteDouble("MarkWindows", "DahMaxWarn", _settings.DahMaxWarn);
+
+            // Boundary detection
+            _ini.WriteDouble("Boundaries", "CharSpaceThresholdDits", _settings.CharSpaceThresholdDits);
+            _ini.WriteDouble("Boundaries", "WordSpaceThresholdDits", _settings.WordSpaceThresholdDits);
+            _ini.WriteDouble("Boundaries", "TimeoutMultiplier", _settings.TimeoutMultiplier);
+
             _serial?.Dispose();
             _history?.Dispose();
             base.OnFormClosing(e);
@@ -175,7 +192,7 @@ namespace CwTrainer
             {
                 double ditMs = 1200.0 / wpm;
                 timelineView1.DitLengthMs = ditMs;
-                _history.DitLengthMs = ditMs;               // calibartion data
+                _history.DitLengthMs = ditMs;
             }
         }
 
@@ -296,6 +313,21 @@ namespace CwTrainer
                 splitContainer1.SplitterDistance = _ini.ReadInt("Window", "SplitterDistance", splitContainer1.SplitterDistance);
 
                 textBox2.Text = _ini.ReadString("Settings", "WPM", textBox2.Text);
+
+                // Mark classification windows - only override if present in INI
+                _settings.DitMinGood = _ini.ReadDouble("MarkWindows", "DitMinGood", _settings.DitMinGood);
+                _settings.DitMaxGood = _ini.ReadDouble("MarkWindows", "DitMaxGood", _settings.DitMaxGood);
+                _settings.DitMinWarn = _ini.ReadDouble("MarkWindows", "DitMinWarn", _settings.DitMinWarn);
+                _settings.DitMaxWarn = _ini.ReadDouble("MarkWindows", "DitMaxWarn", _settings.DitMaxWarn);
+                _settings.DahMinGood = _ini.ReadDouble("MarkWindows", "DahMinGood", _settings.DahMinGood);
+                _settings.DahMaxGood = _ini.ReadDouble("MarkWindows", "DahMaxGood", _settings.DahMaxGood);
+                _settings.DahMinWarn = _ini.ReadDouble("MarkWindows", "DahMinWarn", _settings.DahMinWarn);
+                _settings.DahMaxWarn = _ini.ReadDouble("MarkWindows", "DahMaxWarn", _settings.DahMaxWarn);
+
+                // Boundary detection
+                _settings.CharSpaceThresholdDits = _ini.ReadDouble("Boundaries", "CharSpaceThresholdDits", _settings.CharSpaceThresholdDits);
+                _settings.WordSpaceThresholdDits = _ini.ReadDouble("Boundaries", "WordSpaceThresholdDits", _settings.WordSpaceThresholdDits);
+                _settings.TimeoutMultiplier = _ini.ReadDouble("Boundaries", "TimeoutMultiplier", _settings.TimeoutMultiplier);
             }
 
             ConnectPort();

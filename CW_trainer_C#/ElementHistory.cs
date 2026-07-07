@@ -72,32 +72,13 @@ namespace CwTrainer.Serial
     /// </summary>
     public sealed class ElementHistory : IDisposable
     {
-        /// <summary>Dit length in ms, used to decide character boundaries (a space, real or timed-out, of at least CharSpaceThresholdDits dit-widths ends the current character).</summary>
+        /// <summary>Dit length in ms, set from calibration. Used alongside Settings for all boundary decisions.</summary>
         public double DitLengthMs { get; set; } = 1200.0 / 20.0;
 
-        public double CharSpaceThresholdDits { get; set; } = 2.5;
+        /// <summary>All configurable thresholds and tolerances. Set from MainForm after construction so there is one place to change any value.</summary>
+        public TrainerSettings Settings { get; set; } = new TrainerSettings();
 
-        /// <summary>How many dit-widths of silence counts as a WORD space (vs. just a character space). Standard convention is 7 dit-widths. Tunable since real sending varies.</summary>
-        public double WordSpaceThresholdDits { get; set; } = 5.0;
-
-        /// <summary>
-        /// The silence TIMEOUT backstop is this many times longer than the
-        /// normal real-space threshold. It must be distinctly longer, not
-        /// equal - if it fired at the same threshold as real-space
-        /// detection, it would race against normal sending (the timeout
-        /// and the next real mark could arrive at nearly the same instant,
-        /// non-deterministically choosing which "wins"). Keeping it
-        /// clearly longer means real-space closure always wins during
-        /// normal sending - the timeout only ever matters when the
-        /// operator genuinely stops and no next mark is coming.
-        /// </summary>
-        public double TimeoutMultiplier { get; set; } = 3.5; // i.e. timeout = 2x the real-space threshold
-
-        /// <summary>Tolerance fractions for MorseDecoder's mark classification - keep these in sync with TimelineView's GoodToleranceFraction/PoorToleranceFraction so decode and the visual coloring always agree about what's "Bad".</summary>
-        public double GoodToleranceFraction { get; set; } = 0.15;
-        public double PoorToleranceFraction { get; set; } = 0.35;
-
-        /// <summary>If true, attempt to decode each character via MorseDecoder as it completes, setting CharacterGroup.DecodedText. Set false to disable decode entirely (e.g. before calibration, when DitLengthMs may not be trustworthy yet).</summary>
+        /// <summary>If true, attempt to decode each character via MorseDecoder as it completes, setting CharacterGroup.DecodedText.</summary>
         public bool DecodeEnabled { get; set; } = true;
 
         private readonly List<CharacterGroup> _completedCharacters = new List<CharacterGroup>();
@@ -158,8 +139,8 @@ namespace CwTrainer.Serial
         {
             _lastElementAt = DateTime.Now;
 
-            double thresholdMs = CharSpaceThresholdDits * DitLengthMs;
-            double timeoutMs = thresholdMs * TimeoutMultiplier;
+            double thresholdMs = Settings.CharSpaceThresholdDits * DitLengthMs;
+            double timeoutMs = thresholdMs * Settings.TimeoutMultiplier;
 
             // A space arriving while _currentCharacter is EMPTY means the
             // timeout already closed the previous character based on this
@@ -205,13 +186,13 @@ namespace CwTrainer.Serial
         {
             _currentCharacter.ClosedByTimeout = closedByTimeout;
 
-            double wordThresholdMs = WordSpaceThresholdDits * DitLengthMs;
+            double wordThresholdMs = Settings.WordSpaceThresholdDits * DitLengthMs;
             _currentCharacter.WasWordSpace = closingSpaceDurationMs >= wordThresholdMs;
 
             if (DecodeEnabled)
             {
                 _currentCharacter.DecodedText = MorseDecoder.Decode(
-                    _currentCharacter, DitLengthMs, GoodToleranceFraction, PoorToleranceFraction);
+                    _currentCharacter, DitLengthMs, Settings);
             }
 
             CharacterGroup justCompleted = _currentCharacter;

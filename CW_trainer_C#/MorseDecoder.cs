@@ -114,8 +114,7 @@ namespace CwTrainer.Serial
         /// ElementHistory, right after a character completes) so this
         /// class stays a pure function with no side effects.
         /// </summary>
-        public static string Decode(CharacterGroup group, double ditLengthMs,
-            double goodToleranceFraction, double poorToleranceFraction)
+        public static string Decode(CharacterGroup group, double ditLengthMs, TrainerSettings settings)
         {
             if (group == null || group.Elements.Count == 0)
                 return UndecodedText;
@@ -127,7 +126,7 @@ namespace CwTrainer.Serial
                 if (!element.IsMark) continue; // spaces between elements aren't part of the pattern string
 
                 var quality = MarkClassifier.Classify(element.DurationMs, ditLengthMs,
-                    goodToleranceFraction, poorToleranceFraction, out bool isDit);
+                    settings, out bool isDit);
 
                 if (quality == MarkQuality.Bad)
                 {

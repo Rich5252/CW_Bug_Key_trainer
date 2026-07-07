@@ -24,7 +24,7 @@ namespace CwTrainer
             Timer = new System.Windows.Forms.Timer(components);
             ConnectButton = new Button();
             textBox1 = new TextBox();
-            timelineView1 = new CwTrainer.Display.TimelineView();
+            timelineView1 = new CwTrainer.Display.TimelineView(_settings);
             textBox2 = new TextBox();
             label1 = new Label();
             calibrateButton = new Button();

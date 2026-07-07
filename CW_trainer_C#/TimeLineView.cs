@@ -93,11 +93,14 @@ namespace CwTrainer.Display
 
         private static readonly Font CharFont = new Font("Consolas", 11f, FontStyle.Bold);
 
-        public TimelineView()
+        private TrainerSettings _settings;
+
+        public TimelineView(TrainerSettings settings)
         {
             DoubleBuffered = true;
             BackColor = BackgroundColor;
             SetStyle(ControlStyles.ResizeRedraw, true);
+            _settings = settings;
         }
 
         /// <summary>
@@ -107,7 +110,7 @@ namespace CwTrainer.Display
         /// later to switch to a different history instance (e.g. loading a
         /// past session) - the previous subscription is cleanly removed.
         /// </summary>
-        public void AttachHistory(ElementHistory history)
+        public void AttachHistory(ElementHistory history, TrainerSettings settings)
         {
             if (_history != null)
             {
@@ -357,7 +360,7 @@ namespace CwTrainer.Display
 
                 if (element.IsMark)
                 {
-                    Color fillColor = ColorForMark(element.DurationMs, ditPx > 0 ? DitLengthMs : 0);
+                    Color fillColor = ColorForMark(element.DurationMs, ditPx > 0 ? DitLengthMs : 0, _settings);
                     using var brush = new SolidBrush(fillColor);
                     g.FillRectangle(brush, elementRect);
                 }
@@ -381,10 +384,10 @@ namespace CwTrainer.Display
         /// also used by MorseDecoder, so the visual coloring and the
         /// decoder's strict "any red mark fails decode" rule always agree.
         /// </summary>
-        private Color ColorForMark(double durationMs, double ditLengthMs)
+        private Color ColorForMark(double durationMs, double ditLengthMs, TrainerSettings settings)
         {
             var quality = MarkClassifier.Classify(durationMs, ditLengthMs,
-                GoodToleranceFraction, PoorToleranceFraction, out _);
+                settings, out _);
 
             return quality switch
             {
