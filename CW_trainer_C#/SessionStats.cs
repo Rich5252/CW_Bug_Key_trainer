@@ -114,9 +114,20 @@ namespace CwTrainer.Serial
 
                 ElementRole role = ClassifyRole(element, isLastElement, group, ditLengthMs);
                 double idealMs = IdealMsFor(role, ditLengthMs, settings);
+                StatBucket globalBucket = Global.For(role);
+                StatBucket perCharBucket = perChar.For(role);
 
-                Global.For(role).AddSample(element.DurationMs, idealMs);
-                perChar.For(role).AddSample(element.DurationMs, idealMs);
+                if (element.IsMark)
+                {
+                    bool isDit = (role == ElementRole.Dit);
+                    globalBucket.AddMarkSample(element.DurationMs, idealMs, ditLengthMs, isDit, settings);
+                    perCharBucket.AddMarkSample(element.DurationMs, idealMs, ditLengthMs, isDit, settings);
+                }
+                else
+                {
+                    globalBucket.AddSpaceSample(element.DurationMs, idealMs);
+                    perCharBucket.AddSpaceSample(element.DurationMs, idealMs);
+                }
             }
         }
 

@@ -295,6 +295,8 @@ namespace CwTrainer
             //chart control expanded into the left panel of the split container, so keep it sized to fill that panel
             paretoChartControl1.Width = splitContainer1.Panel1.Width - 5;
             paretoChartControl1.Height = panel1.Top - paretoChartControl1.Top - 5;
+            errorRateChartControl1.Width = paretoChartControl1.Width;
+            errorRateChartControl1.Height = paretoChartControl1.Height;
 
             panel4.Width = splitContainer1.Panel1.Width;
             buttonClearText.Left = splitContainer1.Panel1.Width - buttonClearText.Width - 5;
@@ -356,6 +358,17 @@ namespace CwTrainer
             timelineView1.ClearSession();
             _stats.Reset();
             RefreshParetoChart();
+            RefreshErrorRateChart();
+        }
+
+        private void RefreshErrorRateChart()
+        {
+            
+            var entries = _showingCharacters
+                ? ErrorRateDataBuilder.BuildByCharacter(_stats)
+                : ErrorRateDataBuilder.BuildByRole(_stats);
+
+            errorRateChartControl1.SetData(entries);
         }
 
 
@@ -376,6 +389,7 @@ namespace CwTrainer
         {
             _showingCharacters = rbChar.Checked ? true : false;
             RefreshParetoChart();
+            RefreshErrorRateChart();
         }
 
         private void paretoChartControl1_Click(object sender, EventArgs e)
@@ -383,10 +397,32 @@ namespace CwTrainer
             RefreshParetoChart();
         }
 
+        private void errorRateChartControl1_Click(object sender, EventArgs e)
+        {
+            RefreshErrorRateChart();
+        }
+
         private void rbSpead_CheckedChanged(object sender, EventArgs e)
         {
-            _currentMetric = rbSpead.Checked ? ParetoMetric.SpreadFraction : ParetoMetric.MeanAbsoluteDeviation;
-            RefreshParetoChart();
+            if (rbSpead.Checked) {
+                //swap to ErrorRate chart
+                paretoChartControl1.Left = -1000;
+                errorRateChartControl1.Left = 3;
+                errorRateChartControl1.Width = paretoChartControl1.Width;
+                errorRateChartControl1.Height = paretoChartControl1.Height;
+                _currentMetric = ParetoMetric.SpreadFraction;
+                RefreshErrorRateChart();
+            }
+            else {
+                //swap to Pareto chart
+                errorRateChartControl1.Left = -1000;
+                paretoChartControl1.Left = 3;
+                paretoChartControl1.Width = splitContainer1.Panel1.Width - 5;
+                _currentMetric = ParetoMetric.MeanAbsoluteDeviation;
+                RefreshParetoChart();
+            }
+
+
         }
 
         private void copyCsvButton_Click(object sender, EventArgs e)

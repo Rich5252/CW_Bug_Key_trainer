@@ -40,6 +40,7 @@ namespace CwTrainer
             rbDev = new RadioButton();
             rbSpead = new RadioButton();
             splitContainer1 = new SplitContainer();
+            errorRateChartControl1 = new CwTrainer.Display.ErrorRateChartControl();
             panel4 = new Panel();
             toolTip1 = new ToolTip(components);
             statusStrip1.SuspendLayout();
@@ -163,7 +164,7 @@ namespace CwTrainer
             // 
             // paretoChartControl1
             // 
-            paretoChartControl1.Location = new Point(3, 61);
+            paretoChartControl1.Location = new Point(-1000, 61);
             paretoChartControl1.Name = "paretoChartControl1";
             paretoChartControl1.Size = new Size(261, 261);
             paretoChartControl1.TabIndex = 10;
@@ -261,6 +262,7 @@ namespace CwTrainer
             // 
             // splitContainer1.Panel1
             // 
+            splitContainer1.Panel1.Controls.Add(errorRateChartControl1);
             splitContainer1.Panel1.Controls.Add(panel4);
             splitContainer1.Panel1.Controls.Add(paretoChartControl1);
             splitContainer1.Panel1.Controls.Add(panel3);
@@ -277,6 +279,14 @@ namespace CwTrainer
             splitContainer1.SplitterDistance = 271;
             splitContainer1.TabIndex = 13;
             splitContainer1.SplitterMoved += splitContainer1_SplitterMoved;
+            // 
+            // errorRateChartControl1
+            // 
+            errorRateChartControl1.Location = new Point(3, 61);
+            errorRateChartControl1.Name = "errorRateChartControl1";
+            errorRateChartControl1.Size = new Size(263, 264);
+            errorRateChartControl1.TabIndex = 15;
+            errorRateChartControl1.Click += errorRateChartControl1_Click;
             // 
             // panel4
             // 
@@ -347,5 +357,6 @@ namespace CwTrainer
         private Panel panel4;
         private Button copyCsvButton;
         private ToolTip toolTip1;
+        private Display.ErrorRateChartControl errorRateChartControl1;
     }
 }

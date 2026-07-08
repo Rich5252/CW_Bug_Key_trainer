@@ -4,40 +4,145 @@ using System.Linq;
 
 namespace CwTrainer.Serial
 {
+    public enum SampleBand
+    {
+        ShortBad,
+        ShortWarn,
+        Good,
+        LongWarn,
+        LongBad,
+    }
+
     /// <summary>
     /// Accumulates raw duration samples for one category (e.g. "dits",
     /// "dahs", "inter-character spaces") and computes summary statistics
-    /// on demand. Durations are stored normalized as a ratio against the
-    /// category's ideal target (e.g. a dit's ideal is 1.0x DitLengthMs, a
-    /// dah's is 3.0x) - this makes stats comparable across categories with
-    /// different absolute ideal lengths (you can directly compare "dits
-    /// are 4% off" against "dahs are 12% off" on the same scale).
+    /// on demand. Also tracks per-band counts (ShortBad/ShortWarn/Good/
+    /// LongWarn/LongBad) using TrainerSettings windows, supporting the
+    /// stacked error-rate chart.
+    ///
+    /// For SPACE roles, the band classification uses a simple
+    /// short/good/long split based on the role's ideal multiple and the
+    /// overall warn tolerance, since TrainerSettings only defines explicit
+    /// windows for marks (dits/dahs). Spaces use a symmetric ±30%
+    /// good window and ±50% warn window around the ideal by default,
+    /// which can be extended to explicit space windows later if needed.
     /// </summary>
     public sealed class StatBucket
     {
         private readonly List<double> _normalizedRatios = new List<double>();
 
-        public int Count => _normalizedRatios.Count;
+        // Band counts - incremented alongside _normalizedRatios
+        public int ShortBad { get; private set; }
+        public int ShortWarn { get; private set; }
+        public int Good { get; private set; }
+        public int LongWarn { get; private set; }
+        public int LongBad { get; private set; }
 
-        /// <summary>Add one sample: the actual duration and the ideal target it should be compared against (e.g. DitLengthMs for a dit, 3*DitLengthMs for a dah).</summary>
-        public void AddSample(double actualDurationMs, double idealMs)
+        public int Count => _normalizedRatios.Count;
+        public int BadCount => ShortBad + LongBad;
+        public int WarnCount => ShortWarn + LongWarn;
+
+        /// <summary>Percentage of samples classified as Bad (0-100).</summary>
+        public double BadRatePct => Count > 0 ? (BadCount * 100.0) / Count : 0;
+        /// <summary>Percentage of samples classified as Warn (0-100).</summary>
+        public double WarnRatePct => Count > 0 ? (WarnCount * 100.0) / Count : 0;
+        /// <summary>Percentage of samples classified as Good (0-100).</summary>
+        public double GoodRatePct => Count > 0 ? (Good * 100.0) / Count : 0;
+
+        /// <summary>
+        /// Add a mark sample (dit or dah), classified using TrainerSettings
+        /// min/max windows. idealMs should be the role's ideal duration
+        /// (ditLengthMs for dits, 3×ditLengthMs for dahs). Pass isDit to
+        /// select the correct window set. rawRatio (actual/ditLengthMs) is
+        /// what the windows compare against.
+        /// </summary>
+        public void AddMarkSample(double actualDurationMs, double idealMs, double ditLengthMs,
+            bool isDit, TrainerSettings settings)
         {
-            if (idealMs <= 0) return; // guard against div-by-zero if DitLengthMs is ever 0/uncalibrated
+            if (idealMs <= 0 || ditLengthMs <= 0) return;
+
             _normalizedRatios.Add(actualDurationMs / idealMs);
+
+            // Windows are defined as multiples of ditLengthMs
+            double rawRatio = actualDurationMs / ditLengthMs;
+
+            SampleBand band;
+            if (isDit)
+            {
+                if (rawRatio < settings.DitMinWarn) band = SampleBand.ShortBad;
+                else if (rawRatio < settings.DitMinGood) band = SampleBand.ShortWarn;
+                else if (rawRatio <= settings.DitMaxGood) band = SampleBand.Good;
+                else if (rawRatio <= settings.DitMaxWarn) band = SampleBand.LongWarn;
+                else band = SampleBand.LongBad;
+            }
+            else
+            {
+                if (rawRatio < settings.DahMinWarn) band = SampleBand.ShortBad;
+                else if (rawRatio < settings.DahMinGood) band = SampleBand.ShortWarn;
+                else if (rawRatio <= settings.DahMaxGood) band = SampleBand.Good;
+                else if (rawRatio <= settings.DahMaxWarn) band = SampleBand.LongWarn;
+                else band = SampleBand.LongBad;
+            }
+            IncrementBand(band);
         }
 
-        /// <summary>Mean of (actual/ideal) - 1.0 = perfectly on target, on average.</summary>
+        /// <summary>
+        /// Add a space sample, classified using a symmetric window around
+        /// the ideal (goodFraction = ±fraction for Good, warnFraction = ±
+        /// fraction for Warn). Defaults match typical space tolerance.
+        /// </summary>
+        public void AddSpaceSample(double actualDurationMs, double idealMs,
+            double goodFraction = 0.30, double warnFraction = 0.50)
+        {
+            if (idealMs <= 0) return;
+            double ratio = actualDurationMs / idealMs;
+            _normalizedRatios.Add(ratio);
+
+            double dev = ratio - 1.0; // positive = long, negative = short
+            SampleBand band;
+            if (dev < -warnFraction) band = SampleBand.ShortBad;
+            else if (dev < -goodFraction) band = SampleBand.ShortWarn;
+            else if (dev <= goodFraction) band = SampleBand.Good;
+            else if (dev <= warnFraction) band = SampleBand.LongWarn;
+            else band = SampleBand.LongBad;
+
+            IncrementBand(band);
+        }
+
+        /// <summary>
+        /// Legacy AddSample - stores ratio for stats but classifies as Good
+        /// (no band window info available). Used by call sites not yet
+        /// migrated to AddMarkSample/AddSpaceSample.
+        /// </summary>
+        public void AddSample(double actualDurationMs, double idealMs)
+        {
+            if (idealMs <= 0) return;
+            _normalizedRatios.Add(actualDurationMs / idealMs);
+            Good++; // conservative: unknown classification treated as good
+        }
+
+        private void IncrementBand(SampleBand band)
+        {
+            switch (band)
+            {
+                case SampleBand.ShortBad: ShortBad++; break;
+                case SampleBand.ShortWarn: ShortWarn++; break;
+                case SampleBand.Good: Good++; break;
+                case SampleBand.LongWarn: LongWarn++; break;
+                case SampleBand.LongBad: LongBad++; break;
+            }
+        }
+
+        // --- Existing stats properties, unchanged ---
+
         public double MeanRatio => _normalizedRatios.Count > 0 ? _normalizedRatios.Average() : 0;
 
-        /// <summary>Mean deviation from ideal, as a fraction (e.g. 0.08 = sending averages 8% off target, regardless of direction - see MeanSignedDeviation for direction).</summary>
         public double MeanAbsoluteDeviation =>
             _normalizedRatios.Count > 0 ? _normalizedRatios.Average(r => Math.Abs(r - 1.0)) : 0;
 
-        /// <summary>Mean signed deviation from ideal (e.g. +0.08 = consistently 8% LONG; -0.08 = consistently 8% SHORT). Useful for spotting systematic bias vs. random jitter.</summary>
         public double MeanSignedDeviation =>
             _normalizedRatios.Count > 0 ? _normalizedRatios.Average(r => r - 1.0) : 0;
 
-        /// <summary>Standard deviation of the (actual/ideal) ratio - lower = more consistent.</summary>
         public double StdDeviation
         {
             get
@@ -52,9 +157,12 @@ namespace CwTrainer.Serial
         public double MinRatio => _normalizedRatios.Count > 0 ? _normalizedRatios.Min() : 0;
         public double MaxRatio => _normalizedRatios.Count > 0 ? _normalizedRatios.Max() : 0;
 
-        /// <summary>(max - min) / mean - the simple spread metric, consistent with calibration's existing VarianceFraction approach.</summary>
         public double SpreadFraction => MeanRatio > 0 ? (MaxRatio - MinRatio) / MeanRatio : 0;
 
-        public void Clear() => _normalizedRatios.Clear();
+        public void Clear()
+        {
+            _normalizedRatios.Clear();
+            ShortBad = ShortWarn = Good = LongWarn = LongBad = 0;
+        }
     }
 }
