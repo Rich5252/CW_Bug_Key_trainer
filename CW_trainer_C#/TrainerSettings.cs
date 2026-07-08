@@ -63,8 +63,27 @@
         public double ParisBurstToleranceFraction { get; set; } = 0.15;
 
         // ----------------------------------------------------------------
-        // Ideal space multiples for statistics (IdealMsFor in SessionStats)
+        // Space tolerance windows (symmetric ±fraction around ideal)
+        // These are separate from the mark windows since spaces have
+        // different acceptable variance characteristics - inter-character
+        // spacing in particular has more natural variance than dit/dah
+        // timing, and being slightly long is better for readability.
         // ----------------------------------------------------------------
+
+        /// <summary>±fraction of ideal for intra-character space Good band (within element of same character).</summary>
+        public double IntraCharSpaceGoodFraction { get; set; } = 0.30;
+        /// <summary>±fraction of ideal for intra-character space Warn band.</summary>
+        public double IntraCharSpaceWarnFraction { get; set; } = 0.50;
+
+        /// <summary>±fraction of ideal for inter-character space Good band. Wider than intra-char since slightly generous spacing is normal and readable.</summary>
+        public double InterCharSpaceGoodFraction { get; set; } = 0.40;
+        /// <summary>±fraction of ideal for inter-character space Warn band.</summary>
+        public double InterCharSpaceWarnFraction { get; set; } = 0.70;
+
+        /// <summary>±fraction of ideal for word space Good band. Widest tolerance since word spacing varies most naturally.</summary>
+        public double WordSpaceGoodFraction { get; set; } = 0.50;
+        /// <summary>±fraction of ideal for word space Warn band.</summary>
+        public double WordSpaceWarnFraction { get; set; } = 0.80;
 
         public double IntraCharSpaceIdealDits { get; set; } = 1.0;
         public double InterCharSpaceIdealDits { get; set; } = 3.0;

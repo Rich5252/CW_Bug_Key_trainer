@@ -125,11 +125,20 @@ namespace CwTrainer.Serial
                 }
                 else
                 {
-                    globalBucket.AddSpaceSample(element.DurationMs, idealMs);
-                    perCharBucket.AddSpaceSample(element.DurationMs, idealMs);
+                    (double goodFrac, double warnFrac) = SpaceFractionsFor(role, settings);
+                    globalBucket.AddSpaceSample(element.DurationMs, idealMs, goodFrac, warnFrac);
+                    perCharBucket.AddSpaceSample(element.DurationMs, idealMs, goodFrac, warnFrac);
                 }
             }
         }
+
+        private static (double goodFrac, double warnFrac) SpaceFractionsFor(ElementRole role, TrainerSettings settings) => role switch
+        {
+            ElementRole.IntraCharacterSpace => (settings.IntraCharSpaceGoodFraction, settings.IntraCharSpaceWarnFraction),
+            ElementRole.InterCharacterSpace => (settings.InterCharSpaceGoodFraction, settings.InterCharSpaceWarnFraction),
+            ElementRole.WordSpace => (settings.WordSpaceGoodFraction, settings.WordSpaceWarnFraction),
+            _ => (0.30, 0.50),
+        };
 
         private static ElementRole ClassifyRole(Element element, bool isLastElement, CharacterGroup group, double ditLengthMs)
         {

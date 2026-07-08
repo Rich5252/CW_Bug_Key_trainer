@@ -137,6 +137,28 @@ namespace CwTrainer
 
         private void OnCharacterCompleted(object sender, CharacterGroup group)
         {
+            /* // TEMP DIAGNOSTIC - dump element detail for specific characters
+            if (group.DecodedText == "A" || group.DecodedText == "B")
+            {
+                System.Diagnostics.Debug.WriteLine($"--- Character: {group.DecodedText} ---");
+                for (int i = 0; i < group.Elements.Count; i++)
+                {
+                    var el = group.Elements[i];
+                    bool isLast = (i == group.Elements.Count - 1);
+                    string role = el.IsMark
+                        ? (group.Elements.Count > 2 && i == 0 ? "Dit" : "Dah")  // rough, just for display
+                        : (isLast ? (group.WasWordSpace ? "WordSpace" : "InterChar") : "IntraChar");
+                    double ditMs = _history.DitLengthMs;
+                    double ratio = el.DurationMs / ditMs;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"  [{i}] {(el.IsMark ? "MARK " : "SPACE")} {el.DurationMs:F1}ms  ratio={ratio:F2}  role={role}");
+                }
+            }
+
+            // ... rest of existing handler unchanged
+            */
+    
+
             if (!string.IsNullOrEmpty(group.DecodedText))
             {
                 if (group.DecodedText == "HH")
