@@ -25,9 +25,9 @@ namespace CwTrainer.Serial
             sb.AppendLine();
 
             sb.AppendLine("Characters");
-            sb.AppendLine("Character,NChars,NElements,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%");
+            sb.AppendLine("Character,NChars,NElements,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
 
-            var charRows = new List<(string Key, int NChars, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
+            var charRows = new List<(string Key, int NChars, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread, int ShortBad, int ShortWarn, int Good, int LongWarn, int LongBad)>();
 
             foreach (var charKey in stats.PerCharacter.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
@@ -47,21 +47,34 @@ namespace CwTrainer.Serial
                 double stdDev = applicableBuckets.Average(b => b.StdDeviation) * 100.0;
                 double spread = applicableBuckets.Average(b => b.SpreadFraction) * 100.0;
 
-                charRows.Add((charKey, breakdown.CharacterCount, totalCount, meanAbsDev, meanSignedDev, stdDev, spread));
+                int shortBad = applicableBuckets.Sum(b => b.ShortBad);
+                int shortWarn = applicableBuckets.Sum(b => b.ShortWarn);
+                int good = applicableBuckets.Sum(b => b.Good);
+                int longWarn = applicableBuckets.Sum(b => b.LongWarn);
+                int longBad = applicableBuckets.Sum(b => b.LongBad);
+                double badRatePct = totalCount > 0 ? (shortBad + longBad) * 100.0 / totalCount : 0;
+
+                charRows.Add((charKey, breakdown.CharacterCount, totalCount, meanAbsDev, meanSignedDev, stdDev, spread, shortBad, shortWarn, good, longWarn, longBad));
 
                 sb.AppendLine(string.Join(",",
                     CsvField(charKey),
                     breakdown.CharacterCount.ToString(CultureInfo.InvariantCulture),
                     totalCount.ToString(CultureInfo.InvariantCulture),
-                    Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread)));
+                    Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread),
+                    shortBad.ToString(CultureInfo.InvariantCulture),
+                    shortWarn.ToString(CultureInfo.InvariantCulture),
+                    good.ToString(CultureInfo.InvariantCulture),
+                    longWarn.ToString(CultureInfo.InvariantCulture),
+                    longBad.ToString(CultureInfo.InvariantCulture),
+                    Round(badRatePct)));
             }
 
-            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread)).ToList(),
+            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread, r.ShortBad, r.ShortWarn, r.Good, r.LongWarn, r.LongBad)).ToList(),
                 extraLeadingColumn: charRows.Sum(r => r.NChars).ToString(CultureInfo.InvariantCulture));
 
             sb.AppendLine();
             sb.AppendLine("Elements");
-            sb.AppendLine("Role,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%");
+            sb.AppendLine("Role,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
 
             var roleLabels = new (ElementRole Role, string Label)[]
             {
@@ -72,7 +85,7 @@ namespace CwTrainer.Serial
                 (ElementRole.WordSpace, "Word space"),
             };
 
-            var roleRows = new List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)>();
+            var roleRows = new List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread, int ShortBad, int ShortWarn, int Good, int LongWarn, int LongBad)>();
 
             foreach (var (role, label) in roleLabels.OrderBy(r => r.Label, StringComparer.Ordinal))
             {
@@ -83,13 +96,21 @@ namespace CwTrainer.Serial
                 double meanSignedDev = bucket.MeanSignedDeviation * 100.0;
                 double stdDev = bucket.StdDeviation * 100.0;
                 double spread = bucket.SpreadFraction * 100.0;
+                double badRatePct = bucket.BadRatePct;
 
-                roleRows.Add((bucket.Count, meanAbsDev, meanSignedDev, stdDev, spread));
+                roleRows.Add((bucket.Count, meanAbsDev, meanSignedDev, stdDev, spread,
+                    bucket.ShortBad, bucket.ShortWarn, bucket.Good, bucket.LongWarn, bucket.LongBad));
 
                 sb.AppendLine(string.Join(",",
                     CsvField(label),
                     bucket.Count.ToString(CultureInfo.InvariantCulture),
-                    Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread)));
+                    Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread),
+                    bucket.ShortBad.ToString(CultureInfo.InvariantCulture),
+                    bucket.ShortWarn.ToString(CultureInfo.InvariantCulture),
+                    bucket.Good.ToString(CultureInfo.InvariantCulture),
+                    bucket.LongWarn.ToString(CultureInfo.InvariantCulture),
+                    bucket.LongBad.ToString(CultureInfo.InvariantCulture),
+                    Round(badRatePct)));
             }
 
             AppendWeightedSummaryRow(sb, roleRows);
@@ -111,21 +132,19 @@ namespace CwTrainer.Serial
         /// vs. this row's purpose of representing the whole block).
         /// </summary>
         private static void AppendWeightedSummaryRow(StringBuilder sb,
-            List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread)> rows,
+            List<(int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread, int ShortBad, int ShortWarn, int Good, int LongWarn, int LongBad)> rows,
             string extraLeadingColumn = null)
         {
-            string countsPrefix = extraLeadingColumn != null ? extraLeadingColumn + "," : "";
-
             if (rows.Count == 0)
             {
-                sb.AppendLine($"TOTAL,{countsPrefix}0,,,,");
+                sb.AppendLine($"TOTAL,{(extraLeadingColumn != null ? extraLeadingColumn + "," : "")}0,,,,,,,,,,");
                 return;
             }
 
             int totalCount = rows.Sum(r => r.Count);
             if (totalCount == 0)
             {
-                sb.AppendLine($"TOTAL,{countsPrefix}0,,,,");
+                sb.AppendLine($"TOTAL,{(extraLeadingColumn != null ? extraLeadingColumn + "," : "")}0,,,,,,,,,,");
                 return;
             }
 
@@ -134,6 +153,13 @@ namespace CwTrainer.Serial
             double weightedStdDev = rows.Sum(r => r.StdDev * r.Count) / totalCount;
             double weightedSpread = rows.Sum(r => r.Spread * r.Count) / totalCount;
 
+            int totalShortBad = rows.Sum(r => r.ShortBad);
+            int totalShortWarn = rows.Sum(r => r.ShortWarn);
+            int totalGood = rows.Sum(r => r.Good);
+            int totalLongWarn = rows.Sum(r => r.LongWarn);
+            int totalLongBad = rows.Sum(r => r.LongBad);
+            double totalBadRatePct = totalCount > 0 ? (totalShortBad + totalLongBad) * 100.0 / totalCount : 0;
+
             var fields = new List<string> { "TOTAL (count-weighted avg)" };
             if (extraLeadingColumn != null) fields.Add(extraLeadingColumn);
             fields.Add(totalCount.ToString(CultureInfo.InvariantCulture));
@@ -141,6 +167,12 @@ namespace CwTrainer.Serial
             fields.Add(Round(weightedMeanSignedDev));
             fields.Add(Round(weightedStdDev));
             fields.Add(Round(weightedSpread));
+            fields.Add(totalShortBad.ToString(CultureInfo.InvariantCulture));
+            fields.Add(totalShortWarn.ToString(CultureInfo.InvariantCulture));
+            fields.Add(totalGood.ToString(CultureInfo.InvariantCulture));
+            fields.Add(totalLongWarn.ToString(CultureInfo.InvariantCulture));
+            fields.Add(totalLongBad.ToString(CultureInfo.InvariantCulture));
+            fields.Add(Round(totalBadRatePct));
 
             sb.AppendLine(string.Join(",", fields));
         }
