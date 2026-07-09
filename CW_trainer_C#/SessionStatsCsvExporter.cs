@@ -46,7 +46,6 @@ namespace CwTrainer.Serial
                 double meanSignedDev = applicableBuckets.Average(b => b.MeanSignedDeviation) * 100.0;
                 double stdDev = applicableBuckets.Average(b => b.StdDeviation) * 100.0;
                 double spread = applicableBuckets.Average(b => b.SpreadFraction) * 100.0;
-
                 int shortBad = applicableBuckets.Sum(b => b.ShortBad);
                 int shortWarn = applicableBuckets.Sum(b => b.ShortWarn);
                 int good = applicableBuckets.Sum(b => b.Good);
@@ -69,7 +68,8 @@ namespace CwTrainer.Serial
                     Round(badRatePct)));
             }
 
-            AppendWeightedSummaryRow(sb, charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread, r.ShortBad, r.ShortWarn, r.Good, r.LongWarn, r.LongBad)).ToList(),
+            AppendWeightedSummaryRow(sb,
+                charRows.Select(r => (r.Count, r.MeanAbsDev, r.MeanSignedDev, r.StdDev, r.Spread, r.ShortBad, r.ShortWarn, r.Good, r.LongWarn, r.LongBad)).ToList(),
                 extraLeadingColumn: charRows.Sum(r => r.NChars).ToString(CultureInfo.InvariantCulture));
 
             sb.AppendLine();
@@ -160,6 +160,7 @@ namespace CwTrainer.Serial
             int totalLongBad = rows.Sum(r => r.LongBad);
             double totalBadRatePct = totalCount > 0 ? (totalShortBad + totalLongBad) * 100.0 / totalCount : 0;
 
+            // TOTAL row - weighted averages for deviation columns, sums for band counts
             var fields = new List<string> { "TOTAL (count-weighted avg)" };
             if (extraLeadingColumn != null) fields.Add(extraLeadingColumn);
             fields.Add(totalCount.ToString(CultureInfo.InvariantCulture));
@@ -173,8 +174,25 @@ namespace CwTrainer.Serial
             fields.Add(totalLongWarn.ToString(CultureInfo.InvariantCulture));
             fields.Add(totalLongBad.ToString(CultureInfo.InvariantCulture));
             fields.Add(Round(totalBadRatePct));
-
             sb.AppendLine(string.Join(",", fields));
+
+            // % of total row - each band count as % of total samples
+            // Deviation columns left blank since weighted averages already
+            // appear on the TOTAL row above.
+            var pctFields = new List<string> { "% of total" };
+            if (extraLeadingColumn != null) pctFields.Add(""); // blank NChars
+            pctFields.Add(""); // blank NElements
+            pctFields.Add(""); // blank MeanAbsDev
+            pctFields.Add(""); // blank MeanSignedDev
+            pctFields.Add(""); // blank StdDev
+            pctFields.Add(""); // blank Spread
+            pctFields.Add(Round(totalCount > 0 ? totalShortBad * 100.0 / totalCount : 0));
+            pctFields.Add(Round(totalCount > 0 ? totalShortWarn * 100.0 / totalCount : 0));
+            pctFields.Add(Round(totalCount > 0 ? totalGood * 100.0 / totalCount : 0));
+            pctFields.Add(Round(totalCount > 0 ? totalLongWarn * 100.0 / totalCount : 0));
+            pctFields.Add(Round(totalCount > 0 ? totalLongBad * 100.0 / totalCount : 0));
+            pctFields.Add(""); // BadRate% already shown on TOTAL row
+            sb.AppendLine(string.Join(",", pctFields));
         }
 
         private static string Round(double value) =>
