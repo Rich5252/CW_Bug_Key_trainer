@@ -25,7 +25,7 @@ namespace CwTrainer.Serial
             sb.AppendLine();
 
             sb.AppendLine("Characters");
-            sb.AppendLine("Character,NChars,NElements,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
+            sb.AppendLine("Character,NChars,NElements,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
 
             var charRows = new List<(string Key, int NChars, int Count, double MeanAbsDev, double MeanSignedDev, double StdDev, double Spread, int ShortBad, int ShortWarn, int Good, int LongWarn, int LongBad)>();
 
@@ -60,6 +60,7 @@ namespace CwTrainer.Serial
                     breakdown.CharacterCount.ToString(CultureInfo.InvariantCulture),
                     totalCount.ToString(CultureInfo.InvariantCulture),
                     Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread),
+                    "",
                     shortBad.ToString(CultureInfo.InvariantCulture),
                     shortWarn.ToString(CultureInfo.InvariantCulture),
                     good.ToString(CultureInfo.InvariantCulture),
@@ -74,7 +75,7 @@ namespace CwTrainer.Serial
 
             sb.AppendLine();
             sb.AppendLine("Elements");
-            sb.AppendLine("Role,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
+            sb.AppendLine("Role,,Count,MeanAbsDeviation%,MeanSignedDeviation%,StdDeviation%,Spread%,,ShortBad,ShortWarn,Good,LongWarn,LongBad,BadRate%");
 
             var roleLabels = new (ElementRole Role, string Label)[]
             {
@@ -103,8 +104,10 @@ namespace CwTrainer.Serial
 
                 sb.AppendLine(string.Join(",",
                     CsvField(label),
+                    "",
                     bucket.Count.ToString(CultureInfo.InvariantCulture),
                     Round(meanAbsDev), Round(meanSignedDev), Round(stdDev), Round(spread),
+                    "",
                     bucket.ShortBad.ToString(CultureInfo.InvariantCulture),
                     bucket.ShortWarn.ToString(CultureInfo.InvariantCulture),
                     bucket.Good.ToString(CultureInfo.InvariantCulture),
@@ -162,12 +165,14 @@ namespace CwTrainer.Serial
 
             // TOTAL row - weighted averages for deviation columns, sums for band counts
             var fields = new List<string> { "TOTAL (count-weighted avg)" };
-            if (extraLeadingColumn != null) fields.Add(extraLeadingColumn);
+            if (extraLeadingColumn != null) fields.Add(extraLeadingColumn);     //Characters section
+            if (extraLeadingColumn == null) fields.Add("");                     //Elements section
             fields.Add(totalCount.ToString(CultureInfo.InvariantCulture));
             fields.Add(Round(weightedMeanAbsDev));
             fields.Add(Round(weightedMeanSignedDev));
             fields.Add(Round(weightedStdDev));
             fields.Add(Round(weightedSpread));
+            fields.Add(""); // empty column for spacing
             fields.Add(totalShortBad.ToString(CultureInfo.InvariantCulture));
             fields.Add(totalShortWarn.ToString(CultureInfo.InvariantCulture));
             fields.Add(totalGood.ToString(CultureInfo.InvariantCulture));
@@ -179,13 +184,13 @@ namespace CwTrainer.Serial
             // % of total row - each band count as % of total samples
             // Deviation columns left blank since weighted averages already
             // appear on the TOTAL row above.
-            var pctFields = new List<string> { "% of total" };
-            if (extraLeadingColumn != null) pctFields.Add(""); // blank NChars
+            var pctFields = new List<string> { "% of total," };
             pctFields.Add(""); // blank NElements
             pctFields.Add(""); // blank MeanAbsDev
             pctFields.Add(""); // blank MeanSignedDev
             pctFields.Add(""); // blank StdDev
             pctFields.Add(""); // blank Spread
+            pctFields.Add(""); // column gap
             pctFields.Add(Round(totalCount > 0 ? totalShortBad * 100.0 / totalCount : 0));
             pctFields.Add(Round(totalCount > 0 ? totalShortWarn * 100.0 / totalCount : 0));
             pctFields.Add(Round(totalCount > 0 ? totalGood * 100.0 / totalCount : 0));
