@@ -95,11 +95,22 @@ namespace CwTrainer.Display
 
         private TrainerSettings _settings;
 
-        public TimelineView(TrainerSettings settings)
+        /// <summary>
+        /// Parameterless constructor required by the WinForms designer.
+        /// At design time _settings will be null - all runtime logic is
+        /// guarded by DesignMode checks so nothing will throw.
+        /// At runtime, call AttachHistory() which sets _settings properly.
+        /// </summary>
+        public TimelineView()
         {
             DoubleBuffered = true;
             BackColor = BackgroundColor;
             SetStyle(ControlStyles.ResizeRedraw, true);
+        }
+
+        /// <summary>Runtime constructor - prefer AttachHistory() over this since it sets everything up in one call.</summary>
+        public TimelineView(TrainerSettings settings) : this()
+        {
             _settings = settings;
         }
 
@@ -110,6 +121,7 @@ namespace CwTrainer.Display
         /// later to switch to a different history instance (e.g. loading a
         /// past session) - the previous subscription is cleanly removed.
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public void AttachHistory(ElementHistory history, TrainerSettings settings)
         {
             _settings = settings;
@@ -159,6 +171,7 @@ namespace CwTrainer.Display
         }
 
         /// <summary>Clears the displayed rows - call when starting a new session (after also calling Reset() on the attached ElementHistory).</summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public void ClearSession()
         {
             _completedRows.Clear();
@@ -171,15 +184,19 @@ namespace CwTrainer.Display
         {
             base.OnPaint(e);
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // TEMP DIAGNOSTIC
-/*
-             * System.Diagnostics.Debug.WriteLine(
-                $"[OnPaint] liveRow.Elements={_liveRow.Elements.Count}, " +
-                $"completedRows={_completedRows.Count}, " +
-                $"lastCompletedDecodedChar={(_completedRows.Count > 0 ? _completedRows[_completedRows.Count - 1].DecodedText?.ToString() ?? "null" : "n/a")}");
-*/
+            // At design time _history and _settings are not set - draw a
+            // simple placeholder so the designer can render the control
+            // without hitting any null references or complex drawing code.
+            if (DesignMode)
+            {
+                g.Clear(BackgroundColor);
+                using var placeholderBrush = new SolidBrush(GridLineColor);
+                g.DrawString("TimelineView", Font, placeholderBrush, 4, 4);
+                return;
+            }
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
             // Live row is pinned to a fixed Y position near the bottom of
             // the visible client area when NOT scrolled back (_scrollOffsetRows
             // == 0). Scrolling shifts the whole stack up by N row-heights via
@@ -231,6 +248,7 @@ namespace CwTrainer.Display
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            if (DesignMode) return;
             base.OnMouseWheel(e);
 
             // SystemInformation.MouseWheelScrollLines gives the user's
@@ -401,6 +419,7 @@ namespace CwTrainer.Display
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
+            if (DesignMode) return;
             Invalidate(ClientRectangle);
         }
     }
