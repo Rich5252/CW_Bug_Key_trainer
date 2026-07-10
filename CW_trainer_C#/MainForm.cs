@@ -414,22 +414,12 @@ namespace CwTrainer
             RefreshErrorRateChart();
         }
 
-        private void paretoChartControl1_Click(object sender, EventArgs e)
-        {
-            RefreshParetoChart();
-        }
-
-        private void errorRateChartControl1_Click(object sender, EventArgs e)
-        {
-            RefreshErrorRateChart();
-        }
-
         private void rbSpead_CheckedChanged(object sender, EventArgs e)
         {
             if (rbSpead.Checked)
             {
                 //swap to ErrorRate chart
-                paretoChartControl1.Left = -1000;
+                paretoChartControl1.Left = -10000;
                 errorRateChartControl1.Left = 3;
                 errorRateChartControl1.Width = paretoChartControl1.Width;
                 errorRateChartControl1.Height = paretoChartControl1.Height;
@@ -439,7 +429,7 @@ namespace CwTrainer
             else
             {
                 //swap to Pareto chart
-                errorRateChartControl1.Left = -1000;
+                errorRateChartControl1.Left = -10000;
                 paretoChartControl1.Left = 3;
                 paretoChartControl1.Width = splitContainer1.Panel1.Width - 5;
                 _currentMetric = ParetoMetric.MeanAbsoluteDeviation;
@@ -459,6 +449,7 @@ namespace CwTrainer
 
         private void errorRateChartControl1_MouseClick(object sender, MouseEventArgs e)
         {
+            RefreshParetoChart();
             RefreshErrorRateChart();
 
             if (e.Button == MouseButtons.Right)
@@ -476,6 +467,30 @@ namespace CwTrainer
                     };
                     contextMenu.Items.Add(copyCsvItem);
                     contextMenu.Show(errorRateChart, e.Location);
+                }
+            }
+        }
+
+        private void paretoChartControl1_MouseClick(object sender, MouseEventArgs e)
+        {
+            RefreshParetoChart();
+            RefreshErrorRateChart();
+
+            if (e.Button == MouseButtons.Right)
+            {
+                if (sender is ParetoChartControl paretoChart)
+                {
+                    // Show context menu for pareto chart
+                    ContextMenuStrip contextMenu = new ContextMenuStrip();
+                    ToolStripMenuItem copyCsvItem = new ToolStripMenuItem("Copy Stats to CSV");
+                    copyCsvItem.Click += (s, args) =>
+                    {
+                        string csv = SessionStatsCsvExporter.BuildCsv(_stats);
+                        Clipboard.SetText(csv);
+                        statusLabel.Text = "Stats copied to clipboard";
+                    };
+                    contextMenu.Items.Add(copyCsvItem);
+                    contextMenu.Show(paretoChart, e.Location);
                 }
             }
         }

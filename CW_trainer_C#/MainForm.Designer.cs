@@ -172,7 +172,7 @@ namespace CwTrainer
             paretoChartControl1.Size = new Size(261, 261);
             paretoChartControl1.TabIndex = 10;
             toolTip1.SetToolTip(paretoChartControl1, "Right click to update");
-            paretoChartControl1.Click += paretoChartControl1_Click;
+            paretoChartControl1.MouseClick += paretoChartControl1_MouseClick;
             // 
             // panel1
             // 
@@ -233,6 +233,7 @@ namespace CwTrainer
             copyCsvButton.Text = "X";
             toolTip1.SetToolTip(copyCsvButton, "CSV to Clipboard");
             copyCsvButton.UseVisualStyleBackColor = true;
+            copyCsvButton.Visible = false;
             copyCsvButton.Click += copyCsvButton_Click;
             // 
             // rbDev
