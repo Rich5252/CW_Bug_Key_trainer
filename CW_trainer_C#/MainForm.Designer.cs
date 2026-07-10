@@ -24,7 +24,7 @@ namespace CwTrainer
             Timer = new System.Windows.Forms.Timer(components);
             ConnectButton = new Button();
             textBox1 = new TextBox();
-            timelineView1 = new CwTrainer.Display.TimelineView(_settings);
+            timelineView1 = new Display.TimelineView(_settings);
             textBox2 = new TextBox();
             label1 = new Label();
             calibrateButton = new Button();
@@ -43,6 +43,8 @@ namespace CwTrainer
             errorRateChartControl1 = new CwTrainer.Display.ErrorRateChartControl();
             panel4 = new Panel();
             toolTip1 = new ToolTip(components);
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            copyCSVToClipboardToolStripMenuItem = new ToolStripMenuItem();
             statusStrip1.SuspendLayout();
             panel1.SuspendLayout();
             panel3.SuspendLayout();
@@ -51,6 +53,7 @@ namespace CwTrainer
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             panel4.SuspendLayout();
+            contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // statusStrip1
@@ -286,7 +289,7 @@ namespace CwTrainer
             errorRateChartControl1.Name = "errorRateChartControl1";
             errorRateChartControl1.Size = new Size(263, 264);
             errorRateChartControl1.TabIndex = 15;
-            errorRateChartControl1.Click += errorRateChartControl1_Click;
+            errorRateChartControl1.MouseClick += errorRateChartControl1_MouseClick;
             // 
             // panel4
             // 
@@ -298,6 +301,18 @@ namespace CwTrainer
             panel4.Name = "panel4";
             panel4.Size = new Size(267, 32);
             panel4.TabIndex = 14;
+            // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { copyCSVToClipboardToolStripMenuItem });
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(196, 26);
+            // 
+            // copyCSVToClipboardToolStripMenuItem
+            // 
+            copyCSVToClipboardToolStripMenuItem.Name = "copyCSVToClipboardToolStripMenuItem";
+            copyCSVToClipboardToolStripMenuItem.Size = new Size(195, 22);
+            copyCSVToClipboardToolStripMenuItem.Text = "Copy CSV to Clipboard";
             // 
             // MainForm
             // 
@@ -324,6 +339,7 @@ namespace CwTrainer
             splitContainer1.ResumeLayout(false);
             panel4.ResumeLayout(false);
             panel4.PerformLayout();
+            contextMenuStrip1.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
 
@@ -358,5 +374,7 @@ namespace CwTrainer
         private Button copyCsvButton;
         private ToolTip toolTip1;
         private Display.ErrorRateChartControl errorRateChartControl1;
+        private ContextMenuStrip contextMenuStrip1;
+        private ToolStripMenuItem copyCSVToClipboardToolStripMenuItem;
     }
 }

@@ -157,7 +157,7 @@ namespace CwTrainer
 
             // ... rest of existing handler unchanged
             */
-    
+
 
             if (!string.IsNullOrEmpty(group.DecodedText))
             {
@@ -385,7 +385,7 @@ namespace CwTrainer
 
         private void RefreshErrorRateChart()
         {
-            
+
             var entries = _showingCharacters
                 ? ErrorRateDataBuilder.BuildByCharacter(_stats)
                 : ErrorRateDataBuilder.BuildByRole(_stats);
@@ -426,7 +426,8 @@ namespace CwTrainer
 
         private void rbSpead_CheckedChanged(object sender, EventArgs e)
         {
-            if (rbSpead.Checked) {
+            if (rbSpead.Checked)
+            {
                 //swap to ErrorRate chart
                 paretoChartControl1.Left = -1000;
                 errorRateChartControl1.Left = 3;
@@ -435,7 +436,8 @@ namespace CwTrainer
                 _currentMetric = ParetoMetric.SpreadFraction;
                 RefreshErrorRateChart();
             }
-            else {
+            else
+            {
                 //swap to Pareto chart
                 errorRateChartControl1.Left = -1000;
                 paretoChartControl1.Left = 3;
@@ -453,6 +455,29 @@ namespace CwTrainer
             string csv = SessionStatsCsvExporter.BuildCsv(_stats);
             Clipboard.SetText(csv);
             statusLabel.Text = "Stats copied to clipboard";
+        }
+
+        private void errorRateChartControl1_MouseClick(object sender, MouseEventArgs e)
+        {
+            RefreshErrorRateChart();
+
+            if (e.Button == MouseButtons.Right)
+            {
+                if (sender is ErrorRateChartControl errorRateChart)
+                {
+                    // Show context menu for error rate chart
+                    ContextMenuStrip contextMenu = new ContextMenuStrip();
+                    ToolStripMenuItem copyCsvItem = new ToolStripMenuItem("Copy Stats to CSV");
+                    copyCsvItem.Click += (s, args) =>
+                    {
+                        string csv = SessionStatsCsvExporter.BuildCsv(_stats);
+                        Clipboard.SetText(csv);
+                        statusLabel.Text = "Stats copied to clipboard";
+                    };
+                    contextMenu.Items.Add(copyCsvItem);
+                    contextMenu.Show(errorRateChart, e.Location);
+                }
+            }
         }
     }
 }

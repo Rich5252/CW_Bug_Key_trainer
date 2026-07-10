@@ -38,6 +38,7 @@ namespace CwTrainer.Display
         {
             _chart = new Chart { Dock = DockStyle.Fill };
             _chart.Click += (s, e) => OnClick(e);  // forward the child's click as this control's own Click
+            _chart.MouseClick += (s, e) => OnMouseClick(e);  // forward the child's click as this control's own MouseClick
 
             // Single chart area - legend auto-sizes above it correctly,
             // same as ParetoChartControl. No explicit Position needed.

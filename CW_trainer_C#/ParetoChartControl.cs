@@ -28,6 +28,7 @@ namespace CwTrainer.Display
         {
             _chart = new Chart { Dock = DockStyle.Fill };
             _chart.Click += (s, e) => OnClick(e);  // forward the child's click as this control's own Click
+            _chart.MouseClick += (s, e) => OnMouseClick(e);  // forward the child's click as this control's own MouseClick
 
             _chartArea = new ChartArea("Main");
             _chartArea.AxisX.Interval = 1; // show every label, don't auto-skip
