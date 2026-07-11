@@ -27,6 +27,9 @@ namespace CwTrainer.Display
     ///     before or during a session - grid rescales live. This should be
     ///     the SAME value you set on the attached ElementHistory.
     /// </summary>
+    /// 
+    [ToolboxItem(true)]
+    [DesignerCategory("UserControl")]
     public sealed class TimelineView : UserControl
     {
         private ElementHistory _history;

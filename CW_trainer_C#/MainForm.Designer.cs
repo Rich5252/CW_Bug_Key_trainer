@@ -24,7 +24,6 @@ namespace CwTrainer
             Timer = new System.Windows.Forms.Timer(components);
             ConnectButton = new Button();
             textBox1 = new TextBox();
-            timelineView1 = new Display.TimelineView(_settings);
             textBox2 = new TextBox();
             label1 = new Label();
             calibrateButton = new Button();
@@ -42,6 +41,7 @@ namespace CwTrainer
             splitContainer1 = new SplitContainer();
             errorRateChartControl1 = new CwTrainer.Display.ErrorRateChartControl();
             panel4 = new Panel();
+            timelineView1 = new CwTrainer.Display.TimelineView();
             toolTip1 = new ToolTip(components);
             contextMenuStrip1 = new ContextMenuStrip(components);
             copyCSVToClipboardToolStripMenuItem = new ToolStripMenuItem();
@@ -105,17 +105,6 @@ namespace CwTrainer
             textBox1.ScrollBars = ScrollBars.Vertical;
             textBox1.Size = new Size(174, 52);
             textBox1.TabIndex = 3;
-            // 
-            // timelineView1
-            // 
-            timelineView1.AutoScroll = true;
-            timelineView1.AutoScrollMinSize = new Size(0, 42);
-            timelineView1.BackColor = Color.FromArgb(24, 24, 28);
-            timelineView1.DitLengthMs = 54.545454545454547D;
-            timelineView1.Location = new Point(3, 3);
-            timelineView1.Name = "timelineView1";
-            timelineView1.Size = new Size(891, 356);
-            timelineView1.TabIndex = 4;
             // 
             // textBox2
             // 
@@ -277,8 +266,8 @@ namespace CwTrainer
             // 
             // splitContainer1.Panel2
             // 
-            splitContainer1.Panel2.Controls.Add(decodedTextBox);
             splitContainer1.Panel2.Controls.Add(timelineView1);
+            splitContainer1.Panel2.Controls.Add(decodedTextBox);
             splitContainer1.Size = new Size(1169, 394);
             splitContainer1.SplitterDistance = 271;
             splitContainer1.TabIndex = 13;
@@ -302,6 +291,14 @@ namespace CwTrainer
             panel4.Name = "panel4";
             panel4.Size = new Size(267, 32);
             panel4.TabIndex = 14;
+            // 
+            // timelineView1
+            // 
+            timelineView1.BackColor = Color.FromArgb(24, 24, 28);
+            timelineView1.Location = new Point(3, 3);
+            timelineView1.Name = "timelineView1";
+            timelineView1.Size = new Size(888, 356);
+            timelineView1.TabIndex = 9;
             // 
             // contextMenuStrip1
             // 
@@ -355,7 +352,6 @@ namespace CwTrainer
 		private System.ComponentModel.IContainer components;
 		private Button ConnectButton;
 		private TextBox textBox1;
-		private Display.TimelineView timelineView1;
 		private TextBox textBox2;
 		private Label label1;
         private Button calibrateButton;
@@ -377,5 +373,6 @@ namespace CwTrainer
         private Display.ErrorRateChartControl errorRateChartControl1;
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem copyCSVToClipboardToolStripMenuItem;
+        private Display.TimelineView timelineView1;
     }
 }
