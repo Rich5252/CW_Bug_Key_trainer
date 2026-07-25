@@ -35,6 +35,13 @@ namespace CwTrainer
 
         private readonly IniFile _ini = new IniFile("CwTrainer.ini");
 
+        private UdpTimingListener? _udpListener;
+        private object? _activeSource;
+
+        public event EventHandler<string>? ActiveSourceChanged;
+
+
+
 
         public MainForm()
         {
@@ -45,12 +52,20 @@ namespace CwTrainer
             _history.CharacterCompleted += (s, group) => _stats.RecordCompletedCharacter(group, _history.DitLengthMs, _settings);
             _history.CharacterCompleted += OnCharacterCompleted;
 
+
+            //NOTE: Serial input from Keyer and UDP input from CW decode run in parallel and switch when something received.
             // Constructed here (UI thread) so SynchronizationContext capture
             // inside KeyEventSerialPort is correct.
             _serial = new KeyEventSerialPort();
             _serial.KeyEventReceived += OnKeyEventReceived;
             _serial.ConnectionStateChanged += OnConnectionStateChanged;
             _serial.UnparsedLineReceived += OnUnparsedLine;
+
+            //UDP timing input from CW decoder app.
+            _udpListener = new UdpTimingListener();
+            _udpListener.KeyEventReceived += OnKeyEventReceived;
+            _udpListener.UnparsedLineReceived += OnUnparsedLine;
+            _udpListener.Start();
         }
 
         private void RefreshPortListButton_Click(object sender, EventArgs e)
@@ -104,6 +119,16 @@ namespace CwTrainer
 
         private void OnKeyEventReceived(object? sender, KeyEvent evt)
         {
+            //handle switch of source timing data
+            if (!ReferenceEquals(sender, _activeSource))
+            {
+                _activeSource = sender;
+                string name = sender is KeyEventSerialPort ? "Serial"
+                             : sender is UdpTimingListener ? "UDP"
+                             : "Unknown";
+                ActiveSourceChanged?.Invoke(this, name);
+            }
+
             if (_previousEvent is KeyEvent prev)
             {
                 double durationMs = (evt.TimestampUs - prev.TimestampUs) / 1000.0;
@@ -204,6 +229,7 @@ namespace CwTrainer
             _ini.WriteDouble("Boundaries", "TimeoutMultiplier", _settings.TimeoutMultiplier);
 
             _serial?.Dispose();
+            _udpListener?.Dispose();
             _history?.Dispose();
             base.OnFormClosing(e);
         }

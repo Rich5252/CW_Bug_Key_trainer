@@ -208,35 +208,14 @@ namespace CwTrainer.Serial
 
         private void ParseAndRaise(string line)
         {
-            // Expected format: "DOWN,<int64>" or "UP,<int64>"
-            int commaIndex = line.IndexOf(',');
-            if (commaIndex < 0)
+            if (!KeyEventLineParser.TryParse(line, out KeyEvent evt))
             {
                 RaiseUnparsedLine(line);
                 return;
             }
-
-            string keyword = line.Substring(0, commaIndex);
-            string numberPart = line.Substring(commaIndex + 1);
-
-            bool isDown;
-            if (keyword == "DOWN") isDown = true;
-            else if (keyword == "UP") isDown = false;
-            else
-            {
-                RaiseUnparsedLine(line);
-                return;
-            }
-
-            if (!long.TryParse(numberPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out long timestampUs))
-            {
-                RaiseUnparsedLine(line);
-                return;
-            }
-
-            var evt = new KeyEvent(isDown, timestampUs);
             RaiseOnUiThread(() => KeyEventReceived?.Invoke(this, evt));
         }
+
 
         private void RaiseUnparsedLine(string line)
         {
