@@ -35,10 +35,13 @@ namespace CwTrainer
 
         private readonly IniFile _ini = new IniFile("CwTrainer.ini");
 
+
+        //active timing data source switching
         private UdpTimingListener? _udpListener;
         private object? _activeSource;
-
         public event EventHandler<string>? ActiveSourceChanged;
+        public enum KeyEventSourceMode { None, Serial, Udp }
+        private KeyEventSourceMode _activeMode = KeyEventSourceMode.None;
 
 
 
@@ -53,19 +56,8 @@ namespace CwTrainer
             _history.CharacterCompleted += OnCharacterCompleted;
 
 
-            //NOTE: Serial input from Keyer and UDP input from CW decode run in parallel and switch when something received.
-            // Constructed here (UI thread) so SynchronizationContext capture
-            // inside KeyEventSerialPort is correct.
-            _serial = new KeyEventSerialPort();
-            _serial.KeyEventReceived += OnKeyEventReceived;
-            _serial.ConnectionStateChanged += OnConnectionStateChanged;
-            _serial.UnparsedLineReceived += OnUnparsedLine;
-
-            //UDP timing input from CW decoder app.
-            _udpListener = new UdpTimingListener();
-            _udpListener.KeyEventReceived += OnKeyEventReceived;
-            _udpListener.UnparsedLineReceived += OnUnparsedLine;
-            _udpListener.Start();
+            //set keyer as active source by default, and connect to the selected serial port
+            SetActiveSource(KeyEventSourceMode.Serial, portComboBox.Text);
         }
 
         private void RefreshPortListButton_Click(object sender, EventArgs e)
@@ -519,6 +511,49 @@ namespace CwTrainer
                     contextMenu.Show(paretoChart, e.Location);
                 }
             }
+        }
+
+        private void rbKey_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbKey.Checked)
+            {
+                SetActiveSource(KeyEventSourceMode.Serial, portComboBox.Text);
+            }
+            if (rbUDP.Checked)            {
+                SetActiveSource(KeyEventSourceMode.Udp);
+            }
+        }
+
+        private void SetActiveSource(KeyEventSourceMode mode, string serialPortName = null)
+        {
+            if (mode == _activeMode) return; // no-op if already on this source
+
+            // Always tear down whichever is currently running first - never let
+            // both be live, even momentarily, given what you just saw happen.
+            _serial?.Dispose();
+            _serial = null;
+            _udpListener?.Dispose();
+            _udpListener = null;
+
+            switch (mode)
+            {
+                case KeyEventSourceMode.Serial:
+                    _serial = new KeyEventSerialPort();
+                    _serial.KeyEventReceived += OnKeyEventReceived;
+                    _serial.ConnectionStateChanged += OnConnectionStateChanged;
+                    _serial.UnparsedLineReceived += OnUnparsedLine;
+                    _serial.Connect(serialPortName);
+                    break;
+
+                case KeyEventSourceMode.Udp:
+                    _udpListener = new UdpTimingListener();
+                    _udpListener.KeyEventReceived += OnKeyEventReceived;
+                    _udpListener.UnparsedLineReceived += OnUnparsedLine;
+                    _udpListener.Start();
+                    break;
+            }
+
+            _activeMode = mode;
         }
     }
 }

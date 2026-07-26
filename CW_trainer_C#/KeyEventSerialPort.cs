@@ -37,7 +37,7 @@ namespace CwTrainer.Serial
     ///   transitions to Reconnecting, and polls SerialPort.GetPortNames()
     ///   looking for the port to reappear.
     /// </summary>
-    public sealed class KeyEventSerialPort : IDisposable
+    public sealed class KeyEventSerialPort : IKeyEventSource, IDisposable
     {
         private readonly SynchronizationContext _syncContext;
         private readonly StringBuilder _lineBuffer = new StringBuilder();

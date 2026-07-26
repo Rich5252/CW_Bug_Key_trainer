@@ -45,6 +45,9 @@ namespace CwTrainer
             toolTip1 = new ToolTip(components);
             contextMenuStrip1 = new ContextMenuStrip(components);
             copyCSVToClipboardToolStripMenuItem = new ToolStripMenuItem();
+            panel5 = new Panel();
+            rbKey = new RadioButton();
+            rbUDP = new RadioButton();
             statusStrip1.SuspendLayout();
             panel1.SuspendLayout();
             panel3.SuspendLayout();
@@ -54,6 +57,7 @@ namespace CwTrainer
             splitContainer1.SuspendLayout();
             panel4.SuspendLayout();
             contextMenuStrip1.SuspendLayout();
+            panel5.SuspendLayout();
             SuspendLayout();
             // 
             // statusStrip1
@@ -99,11 +103,11 @@ namespace CwTrainer
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(90, 3);
+            textBox1.Location = new Point(79, 3);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
             textBox1.ScrollBars = ScrollBars.Vertical;
-            textBox1.Size = new Size(174, 52);
+            textBox1.Size = new Size(126, 52);
             textBox1.TabIndex = 3;
             // 
             // textBox2
@@ -255,6 +259,7 @@ namespace CwTrainer
             // 
             // splitContainer1.Panel1
             // 
+            splitContainer1.Panel1.Controls.Add(panel5);
             splitContainer1.Panel1.Controls.Add(errorRateChartControl1);
             splitContainer1.Panel1.Controls.Add(panel4);
             splitContainer1.Panel1.Controls.Add(paretoChartControl1);
@@ -312,6 +317,38 @@ namespace CwTrainer
             copyCSVToClipboardToolStripMenuItem.Size = new Size(195, 22);
             copyCSVToClipboardToolStripMenuItem.Text = "Copy CSV to Clipboard";
             // 
+            // panel5
+            // 
+            panel5.Controls.Add(rbUDP);
+            panel5.Controls.Add(rbKey);
+            panel5.Location = new Point(211, 3);
+            panel5.Name = "panel5";
+            panel5.Size = new Size(57, 52);
+            panel5.TabIndex = 16;
+            // 
+            // rbKey
+            // 
+            rbKey.AutoSize = true;
+            rbKey.Checked = true;
+            rbKey.Location = new Point(3, 5);
+            rbKey.Name = "rbKey";
+            rbKey.Size = new Size(43, 19);
+            rbKey.TabIndex = 0;
+            rbKey.TabStop = true;
+            rbKey.Text = "key";
+            rbKey.UseVisualStyleBackColor = true;
+            rbKey.CheckedChanged += rbKey_CheckedChanged;
+            // 
+            // rbUDP
+            // 
+            rbUDP.AutoSize = true;
+            rbUDP.Location = new Point(3, 30);
+            rbUDP.Name = "rbUDP";
+            rbUDP.Size = new Size(46, 19);
+            rbUDP.TabIndex = 1;
+            rbUDP.Text = "udp";
+            rbUDP.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             ClientSize = new Size(1193, 426);
@@ -338,6 +375,8 @@ namespace CwTrainer
             panel4.ResumeLayout(false);
             panel4.PerformLayout();
             contextMenuStrip1.ResumeLayout(false);
+            panel5.ResumeLayout(false);
+            panel5.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
 
@@ -374,5 +413,8 @@ namespace CwTrainer
         private ContextMenuStrip contextMenuStrip1;
         private ToolStripMenuItem copyCSVToClipboardToolStripMenuItem;
         private Display.TimelineView timelineView1;
+        private Panel panel5;
+        private RadioButton rbUDP;
+        private RadioButton rbKey;
     }
 }
